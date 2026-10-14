@@ -35,33 +35,38 @@ jobs:
             -keyalg RSA \
             -keysize 2048 \
             -validity 10000 \
-            -dname "CN=Comida de Vó, OU=Clientes, O=Comida de Vó, L=Uba, ST=MG, C=BR"
+            -dname "CN=Comida de Vó, OU=Aplicativos, O=Comida de Vó, L=Uba, ST=MG, C=BR"
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.6.0'
-      - name: Gerar APK instalável assinado
-        run: gradle assembleDebug --no-daemon
-      - name: Conferir assinatura e APK gerado
+      - name: Gerar APKs instaláveis assinados
+        run: gradle :app:assembleDebug :financeiro:assembleDebug --no-daemon
+      - name: Conferir APKs gerados
         run: |
           find app/build/outputs/apk/debug -maxdepth 1 -type f -print
+          find financeiro/build/outputs/apk/debug -maxdepth 1 -type f -print
           jarsigner -verify -verbose -certs app/build/outputs/apk/debug/app-debug.apk | tail -5
-      - name: Preparar download direto
+          jarsigner -verify -verbose -certs financeiro/build/outputs/apk/debug/financeiro-debug.apk | tail -5
+      - name: Preparar downloads diretos
         run: |
           rm -rf public
           mkdir -p public
           cp app/build/outputs/apk/debug/app-debug.apk public/ComidaDeVo-Clientes.apk
-          printf '%s\n' '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Comida de Vó</title></head><body><h1>Comida de Vó</h1><p><a href="ComidaDeVo-Clientes.apk">Baixar aplicativo Clientes</a></p></body></html>' > public/index.html
-      - name: Publicar APK em link direto
+          cp financeiro/build/outputs/apk/debug/financeiro-debug.apk public/ComidaDeVo-Financeiro.apk
+          printf '%s\n' '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Comida de Vó</title></head><body><h1>Comida de Vó</h1><p><a href="ComidaDeVo-Clientes.apk">Baixar Clientes</a></p><p><a href="ComidaDeVo-Financeiro.apk">Baixar Financeiro</a></p></body></html>' > public/index.html
+      - name: Publicar APKs em links diretos
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: ./android/public
           force_orphan: true
-      - name: Publicar APK como artefato
+      - name: Publicar APKs como artefatos
         uses: actions/upload-artifact@v4
         with:
-          name: comida-de-vo-clientes-apk-instalavel
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: comida-de-vo-apks-instalaveis
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/financeiro/build/outputs/apk/debug/financeiro-debug.apk
           if-no-files-found: error
