@@ -5,6 +5,10 @@ on:
     branches: [main]
     paths:
       - 'android/**'
+      - 'clientes.html'
+      - 'google-sync.js'
+      - 'manifest-clientes.json'
+      - 'sw-clientes.js'
       - '.github/workflows/android-apk.yml'
   workflow_dispatch:
 
@@ -48,14 +52,18 @@ jobs:
           find financeiro/build/outputs/apk/debug -maxdepth 1 -type f -print
           jarsigner -verify -verbose -certs app/build/outputs/apk/debug/app-debug.apk | tail -5
           jarsigner -verify -verbose -certs financeiro/build/outputs/apk/debug/financeiro-debug.apk | tail -5
-      - name: Preparar downloads diretos
+      - name: Preparar downloads diretos e versão web
         run: |
           rm -rf public
           mkdir -p public
           cp app/build/outputs/apk/debug/app-debug.apk public/ComidaDeVo-Clientes.apk
           cp financeiro/build/outputs/apk/debug/financeiro-debug.apk public/ComidaDeVo-Financeiro.apk
-          printf '%s\n' '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Comida de Vó</title></head><body><h1>Comida de Vó</h1><p><a href="ComidaDeVo-Clientes.apk">Baixar Clientes</a></p><p><a href="ComidaDeVo-Financeiro.apk">Baixar Financeiro</a></p></body></html>' > public/index.html
-      - name: Publicar APKs em links diretos
+          cp ../clientes.html public/clientes.html
+          cp ../google-sync.js public/google-sync.js
+          cp ../manifest-clientes.json public/manifest-clientes.json
+          cp ../sw-clientes.js public/sw-clientes.js
+          printf '%s\n' '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Comida de Vó</title></head><body><h1>Comida de Vó</h1><p><a href="clientes.html">Abrir Clientes</a></p><p><a href="ComidaDeVo-Clientes.apk">Baixar Clientes</a></p><p><a href="ComidaDeVo-Financeiro.apk">Baixar Financeiro</a></p></body></html>' > public/index.html
+      - name: Publicar APKs e versão web
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
