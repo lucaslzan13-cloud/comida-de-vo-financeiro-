@@ -8,11 +8,23 @@ android {
         applicationId 'br.com.comidadevo.clientes'
         minSdk 24
         targetSdk 36
-        versionCode 3
-        versionName '1.2'
+        versionCode 4
+        versionName '1.3'
+    }
+
+    signingConfigs {
+        debug {
+            storeFile file(System.getProperty('user.home') + '/.android/comida-de-vo-debug.keystore')
+            storePassword 'comidadevo'
+            keyAlias 'comidadevo'
+            keyPassword 'comidadevo'
+        }
     }
 
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
         release {
             minifyEnabled false
             shrinkResources false
