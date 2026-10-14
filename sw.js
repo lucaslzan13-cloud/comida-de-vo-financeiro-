@@ -1,5 +1,5 @@
-const CACHE='cdv-financeiro-v2';
-const ASSETS=['./','./index.html','./manifest.json'];
+const CACHE='cdv-financeiro-v3';
+const ASSETS=['./','./index.html','./manifest.json','./icon.svg'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(
