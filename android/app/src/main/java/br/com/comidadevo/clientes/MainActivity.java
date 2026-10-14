@@ -25,7 +25,6 @@ import androidx.credentials.exceptions.GetCredentialException;
 
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
-import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException;
 
 import org.json.JSONObject;
 
@@ -33,7 +32,7 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
     private static final String APP_URL = "https://lucaslzan13-cloud.github.io/comida-de-vo-financeiro-/clientes.html";
-    private static final String SYNC_URL = "https://lucaslzan13-cloud.github.io/comida-de-vo-financeiro-/google-sync.js?v=3";
+    private static final String SYNC_URL = "https://lucaslzan13-cloud.github.io/comida-de-vo-financeiro-/google-sync.js?v=4";
     private WebView webView;
     private CredentialManager credentialManager;
 
@@ -129,17 +128,17 @@ public class MainActivity extends Activity {
                         new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
                             @Override
                             public void onResult(@NonNull GetCredentialResponse result) {
-                                Credential credential = result.getCredential();
-                                if (credential instanceof CustomCredential
-                                        && GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(credential.getType())) {
-                                    try {
+                                try {
+                                    Credential credential = result.getCredential();
+                                    if (credential instanceof CustomCredential
+                                            && GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(credential.getType())) {
                                         GoogleIdTokenCredential googleCredential = GoogleIdTokenCredential.createFrom(((CustomCredential) credential).getData());
                                         sendToWeb("__nativeGoogleLogin", googleCredential.getIdToken());
-                                    } catch (GoogleIdTokenParsingException e) {
-                                        sendToWeb("__nativeGoogleError", "Não foi possível ler a conta Google.");
+                                    } else {
+                                        sendToWeb("__nativeGoogleError", "A conta escolhida não retornou uma credencial Google válida.");
                                     }
-                                } else {
-                                    sendToWeb("__nativeGoogleError", "A conta escolhida não retornou uma credencial Google válida.");
+                                } catch (Exception e) {
+                                    sendToWeb("__nativeGoogleError", "Não foi possível ler a conta Google.");
                                 }
                             }
 
