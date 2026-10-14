@@ -28,18 +28,27 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Criar chave de assinatura Android
+      - name: Recuperar chave de assinatura estável
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/comida-de-vo-debug.keystore
+          key: comida-de-vo-android-signing-v1
+      - name: Criar chave de assinatura Android se necessário
         run: |
           mkdir -p "$HOME/.android"
-          keytool -genkeypair -v \
-            -keystore "$HOME/.android/comida-de-vo-debug.keystore" \
-            -storepass comidadevo \
-            -keypass comidadevo \
-            -alias comidadevo \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "CN=Comida de Vó, OU=Aplicativos, O=Comida de Vó, L=Uba, ST=MG, C=BR"
+          if [ ! -f "$HOME/.android/comida-de-vo-debug.keystore" ]; then
+            keytool -genkeypair -v \
+              -keystore "$HOME/.android/comida-de-vo-debug.keystore" \
+              -storepass comidadevo \
+              -keypass comidadevo \
+              -alias comidadevo \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Comida de Vó, OU=Aplicativos, O=Comida de Vó, L=Uba, ST=MG, C=BR"
+          fi
+          echo "SHA1 DO APK:"
+          keytool -list -v -keystore "$HOME/.android/comida-de-vo-debug.keystore" -storepass comidadevo -alias comidadevo | grep -E 'SHA1:|SHA-1:' | head -1
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
