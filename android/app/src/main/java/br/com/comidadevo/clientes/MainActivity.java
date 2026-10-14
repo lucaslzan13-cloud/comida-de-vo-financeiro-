@@ -23,7 +23,7 @@ import androidx.credentials.GetCredentialRequest;
 import androidx.credentials.GetCredentialResponse;
 import androidx.credentials.exceptions.GetCredentialException;
 
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 
 import org.json.JSONObject;
@@ -32,7 +32,7 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
     private static final String APP_URL = "https://lucaslzan13-cloud.github.io/comida-de-vo-financeiro-/clientes.html";
-    private static final String SYNC_URL = "https://lucaslzan13-cloud.github.io/comida-de-vo-financeiro-/google-sync.js?v=4";
+    private static final String SYNC_URL = "https://lucaslzan13-cloud.github.io/comida-de-vo-financeiro-/google-sync.js?v=5";
     private WebView webView;
     private CredentialManager credentialManager;
 
@@ -111,13 +111,11 @@ public class MainActivity extends Activity {
                     return;
                 }
 
-                GetGoogleIdOption googleIdOption = new GetGoogleIdOption.Builder()
-                        .setFilterByAuthorizedAccounts(false)
-                        .setServerClientId(webClientId)
+                GetSignInWithGoogleOption googleOption = new GetSignInWithGoogleOption.Builder(webClientId)
                         .build();
 
                 GetCredentialRequest request = new GetCredentialRequest.Builder()
-                        .addCredentialOption(googleIdOption)
+                        .addCredentialOption(googleOption)
                         .build();
 
                 credentialManager.getCredentialAsync(
