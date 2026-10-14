@@ -12,19 +12,7 @@ android {
         versionName '1.0'
     }
 
-    signingConfigs {
-        debug {
-            storeFile file(System.getProperty('user.home') + '/.android/comida-de-vo-debug.keystore')
-            storePassword 'comidadevo'
-            keyAlias 'comidadevo'
-            keyPassword 'comidadevo'
-        }
-    }
-
     buildTypes {
-        debug {
-            signingConfig signingConfigs.debug
-        }
         release {
             minifyEnabled false
             shrinkResources false
