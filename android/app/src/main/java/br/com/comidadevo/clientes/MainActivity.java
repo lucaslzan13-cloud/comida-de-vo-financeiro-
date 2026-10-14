@@ -1,10 +1,12 @@
 package br.com.comidadevo.clientes;
 
 import android.app.Activity;
+import android.content.Context;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.view.View;
+import android.os.CancellationSignal;
 import android.webkit.CookieManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
@@ -12,10 +14,28 @@ import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.ProgressBar;
 
+import androidx.annotation.NonNull;
+import androidx.credentials.Credential;
+import androidx.credentials.CredentialManager;
+import androidx.credentials.CredentialManagerCallback;
+import androidx.credentials.CustomCredential;
+import androidx.credentials.GetCredentialRequest;
+import androidx.credentials.GetCredentialResponse;
+import androidx.credentials.exceptions.GetCredentialException;
+
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
+import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException;
+
+import org.json.JSONObject;
+
+import java.util.concurrent.Executors;
+
 public class MainActivity extends Activity {
     private static final String APP_URL = "https://lucaslzan13-cloud.github.io/comida-de-vo-financeiro-/clientes.html";
-    private static final String SYNC_URL = "https://lucaslzan13-cloud.github.io/comida-de-vo-financeiro-/google-sync.js?v=2";
+    private static final String SYNC_URL = "https://lucaslzan13-cloud.github.io/comida-de-vo-financeiro-/google-sync.js?v=3";
     private WebView webView;
+    private CredentialManager credentialManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,8 +52,11 @@ public class MainActivity extends Activity {
         root.addView(progress, progressParams);
         setContentView(root);
 
+        credentialManager = CredentialManager.create(this);
+        webView.addJavascriptInterface(new GoogleBridge(this), "AndroidGoogle");
+
         webView.setBackgroundColor(Color.rgb(243, 244, 246));
-        webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        webView.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
         webView.setVerticalScrollBarEnabled(false);
         webView.setHorizontalScrollBarEnabled(false);
         webView.setSaveEnabled(true);
@@ -59,14 +82,74 @@ public class MainActivity extends Activity {
         webView.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) { return false; }
             @Override public void onPageFinished(WebView view, String url) {
-                progress.setVisibility(View.GONE);
+                progress.setVisibility(android.view.View.GONE);
                 view.evaluateJavascript("(function(){document.documentElement.style.webkitUserSelect='none';document.documentElement.style.userSelect='none';document.documentElement.style.webkitTouchCallout='none';document.addEventListener('contextmenu',function(e){var t=e.target;if(!t.matches('input,textarea,select,[contenteditable=true]'))e.preventDefault();},{passive:false});document.addEventListener('selectstart',function(e){var t=e.target;if(!t.matches('input,textarea,select,[contenteditable=true]'))e.preventDefault();},{passive:false});var s=document.querySelector('script[data-cdv-sync]');if(!s){s=document.createElement('script');s.type='module';s.src='" + SYNC_URL + "';s.setAttribute('data-cdv-sync','1');document.head.appendChild(s);}})();", null);
             }
-            @Override public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) { progress.setVisibility(View.GONE); }
+            @Override public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) { progress.setVisibility(android.view.View.GONE); }
         });
 
         if (savedInstanceState == null) webView.loadUrl(APP_URL);
-        else { webView.restoreState(savedInstanceState); progress.setVisibility(View.GONE); }
+        else { webView.restoreState(savedInstanceState); progress.setVisibility(android.view.View.GONE); }
+    }
+
+    private void sendToWeb(String function, String value) {
+        String safe = JSONObject.quote(value == null ? "" : value);
+        runOnUiThread(() -> {
+            if (webView != null) webView.evaluateJavascript("window." + function + " && window." + function + "(" + safe + ")", null);
+        });
+    }
+
+    private final class GoogleBridge {
+        private final Context context;
+        GoogleBridge(Context context) { this.context = context; }
+
+        @JavascriptInterface
+        public void signInGoogle() {
+            runOnUiThread(() -> {
+                String webClientId = getString(R.string.google_web_client_id);
+                if (webClientId.startsWith("COLOQUE_AQUI")) {
+                    sendToWeb("__nativeGoogleError", "Falta configurar o Client ID Web do Google.");
+                    return;
+                }
+
+                GetGoogleIdOption googleIdOption = new GetGoogleIdOption.Builder()
+                        .setFilterByAuthorizedAccounts(false)
+                        .setServerClientId(webClientId)
+                        .build();
+
+                GetCredentialRequest request = new GetCredentialRequest.Builder()
+                        .addCredentialOption(googleIdOption)
+                        .build();
+
+                credentialManager.getCredentialAsync(
+                        context,
+                        request,
+                        new CancellationSignal(),
+                        Executors.newSingleThreadExecutor(),
+                        new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
+                            @Override
+                            public void onResult(@NonNull GetCredentialResponse result) {
+                                Credential credential = result.getCredential();
+                                if (credential instanceof CustomCredential
+                                        && GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(credential.getType())) {
+                                    try {
+                                        GoogleIdTokenCredential googleCredential = GoogleIdTokenCredential.createFrom(((CustomCredential) credential).getData());
+                                        sendToWeb("__nativeGoogleLogin", googleCredential.getIdToken());
+                                    } catch (GoogleIdTokenParsingException e) {
+                                        sendToWeb("__nativeGoogleError", "Não foi possível ler a conta Google.");
+                                    }
+                                } else {
+                                    sendToWeb("__nativeGoogleError", "A conta escolhida não retornou uma credencial Google válida.");
+                                }
+                            }
+
+                            @Override
+                            public void onError(@NonNull GetCredentialException e) {
+                                sendToWeb("__nativeGoogleError", e.getLocalizedMessage() == null ? "Não foi possível entrar com o Google." : e.getLocalizedMessage());
+                            }
+                        });
+            });
+        }
     }
 
     @Override protected void onSaveInstanceState(Bundle outState) { webView.saveState(outState); super.onSaveInstanceState(outState); }
