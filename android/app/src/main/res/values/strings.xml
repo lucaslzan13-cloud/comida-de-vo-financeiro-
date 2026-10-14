@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Comida de Vó</string>
+    <!-- Substituir pelo OAuth 2.0 Client ID do tipo Web do projeto Firebase. -->
+    <string name="google_web_client_id">COLOQUE_AQUI_O_WEB_CLIENT_ID.apps.googleusercontent.com</string>
+</resources>
