@@ -19,3 +19,15 @@ android {
         }
     }
 }
+
+tasks.register('syncClientesWeb', Copy) {
+    from(rootProject.projectDir.parentFile) {
+        include('clientes.html')
+        include('manifest-clientes.json')
+        include('sw-clientes.js')
+    }
+    into(layout.projectDirectory.dir('src/main/assets'))
+    rename('clientes.html', 'index.html')
+}
+
+tasks.named('preBuild').configure { dependsOn('syncClientesWeb') }
