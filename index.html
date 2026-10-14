@@ -1,84 +1,103 @@
 <!doctype html>
-<html lang="pt-BR"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#7b3f00"><link rel="manifest" href="manifest.json">
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<meta name="description" content="Controle financeiro da Comida de Vó">
+<link rel="manifest" href="manifest.json">
 <title>Comida de Vó — Financeiro</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f5f2ee;color:#29231f;font-family:Arial,sans-serif}
-header{background:#7b3f00;color:white;padding:20px;border-radius:0 0 22px 22px}header h1{margin:0;font-size:25px}header p{margin:5px 0 0;opacity:.9}
-main{max-width:700px;margin:auto;padding:15px}.card{background:#fff;padding:17px;border-radius:18px;margin-bottom:14px;box-shadow:0 3px 14px #0001}
-h2{font-size:19px;margin:0 0 13px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-label{font-weight:700;font-size:14px;display:block;margin:9px 0 5px}input,select{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;font-size:16px;background:white}
-button{border:0;border-radius:10px;padding:12px;font-weight:700;font-size:15px;cursor:pointer}.primary{background:#7b3f00;color:white;width:100%;margin-top:13px}
-.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{padding:14px;border-radius:14px;background:#f7f1ea}.stat b{font-size:20px;display:block;margin-top:4px}.green{color:#177245}.red{color:#b3261e}
-.row{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid #eee}.row:last-child{border:0}.muted{color:#777;font-size:13px}
-.filters{display:grid;grid-template-columns:1fr 1fr;gap:8px}.expense{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:11px 0;border-bottom:1px solid #eee}.expense small{color:#777}.del{background:#eee;color:#a11;padding:8px 10px}.empty{text-align:center;color:#888;padding:15px}
-.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.secondary{background:#eee7e0;color:#4a2c19;width:100%}
-</style></head><body>
-<header><h1>Comida de Vó</h1><p>Controle financeiro da marmitaria</p></header>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f3f4f6;color:#111827}
+header{background:#111827;color:#fff;padding:20px 16px 24px;position:sticky;top:0;z-index:5}
+h1{margin:0;font-size:22px}.sub{opacity:.75;font-size:13px;margin-top:4px}
+main{max-width:720px;margin:auto;padding:14px 14px 90px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.card{background:#fff;border-radius:16px;padding:14px;box-shadow:0 2px 10px #0000000d}.label{font-size:12px;color:#6b7280}.value{font-size:22px;font-weight:800;margin-top:5px}
+.in{color:#15803d}.out{color:#b91c1c}.bal{color:#1d4ed8}
+section{background:#fff;border-radius:16px;padding:15px;margin-bottom:14px;box-shadow:0 2px 10px #0000000d}
+h2{font-size:17px;margin:0 0 12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{font-size:12px;color:#4b5563;display:block;margin-bottom:5px}input,select,button{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:11px;font:inherit;background:#fff}
+button{border:0;background:#111827;color:#fff;font-weight:700;cursor:pointer}.danger{background:#fee2e2;color:#991b1b}.secondary{background:#e5e7eb;color:#111827}
+.full{grid-column:1/-1}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.item{display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #eee}.item:last-child{border-bottom:0}
+.item strong{display:block}.meta{font-size:12px;color:#6b7280;margin-top:3px}.amt{font-weight:800;white-space:nowrap}
+.empty{text-align:center;color:#6b7280;padding:20px}.install{display:none;margin-top:10px;background:#2563eb}
+@media(min-width:600px){.cards{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<header><h1>Comida de Vó</h1><div class="sub">Controle financeiro</div></header>
 <main>
-<section class="card"><h2>Resumo do mês</h2>
 <div class="cards">
-<div class="stat">Receitas<b class="green" id="receitas">R$ 0,00</b></div>
-<div class="stat">Despesas<b class="red" id="despesas">R$ 0,00</b></div>
-<div class="stat">Saldo<b id="saldo">R$ 0,00</b></div>
-<div class="stat">Margem<b id="margem">0%</b></div>
-</div></section>
+<div class="card"><div class="label">Entradas</div><div id="totalIn" class="value in">R$ 0,00</div></div>
+<div class="card"><div class="label">Gastos</div><div id="totalOut" class="value out">R$ 0,00</div></div>
+<div class="card"><div class="label">Saldo</div><div id="balance" class="value bal">R$ 0,00</div></div>
+</div>
 
-<section class="card"><h2>Novo lançamento</h2>
+<section>
+<h2>Novo lançamento</h2>
 <div class="grid">
-<div><label>Tipo</label><select id="tipo"><option value="despesa">Despesa</option><option value="receita">Receita</option></select></div>
-<div><label>Data</label><input id="data" type="date"></div>
+<div><label>Tipo</label><select id="type"><option value="out">Gasto</option><option value="in">Entrada</option></select></div>
+<div><label>Valor (R$)</label><input id="amount" type="number" inputmode="decimal" step="0.01" placeholder="0,00"></div>
+<div><label>Categoria</label><select id="category">
+<option>Ingredientes</option><option>Embalagens</option><option>Funcionários</option><option>Motoboy</option><option>Combustível</option><option>Publicidade</option><option>iFood/Taxas</option><option>Equipamentos</option><option>Contas</option><option>Fornecedor</option><option>Vendas</option><option>Outros</option>
+</select></div>
+<div><label>Data</label><input id="date" type="date"></div>
+<div class="full"><label>Descrição</label><input id="desc" placeholder="Ex.: compra de arroz"></div>
 </div>
-<label>Descrição</label><input id="desc" placeholder="Ex.: Compra de arroz">
-<div class="grid">
-<div><label>Categoria</label><select id="cat"></select></div>
-<div><label>Valor (R$)</label><input id="valor" type="number" step=".01" placeholder="0,00"></div>
-</div>
-<button class="primary" onclick="add()">Adicionar lançamento</button>
+<div class="actions"><button onclick="add()">Adicionar</button><button class="secondary" onclick="clearForm()">Limpar</button></div>
+<button id="install" class="install" onclick="installApp()">Instalar aplicativo</button>
 </section>
 
-<section class="card"><h2>Filtros</h2>
-<div class="filters"><input id="mes" type="month"><select id="fcat"><option value="">Todas as categorias</option></select></div>
+<section>
+<h2>Filtros</h2>
+<div class="grid">
+<div><label>Mês</label><input id="month" type="month" onchange="render()"></div>
+<div><label>Tipo</label><select id="filterType" onchange="render()"><option value="all">Todos</option><option value="in">Entradas</option><option value="out">Gastos</option></select></div>
+</div>
 </section>
 
-<section class="card"><h2>Lançamentos</h2><div id="lista"></div></section>
-
-<section class="card"><h2>Resumo por categoria</h2><div id="categorias"></div></section>
-
-<section class="card"><div class="actions">
-<button class="secondary" onclick="exportar()">Exportar CSV</button>
-<button class="secondary" onclick="window.print()">Imprimir / PDF</button>
-</div></section>
+<section>
+<h2>Histórico</h2>
+<div id="list"></div>
+<div class="actions"><button class="danger" onclick="clearAll()">Apagar todos</button><button class="secondary" onclick="exportData()">Exportar dados</button></div>
+</section>
 </main>
 <script>
-const cats=['Ingredientes','Embalagens','Funcionários','Motoboy/Entregas','Gás','Energia','Água','Aluguel','Marketing/Anúncios','iFood/Taxas','Equipamentos','Manutenção','Impostos','Telefone/Internet','Outros','Vendas','Outras receitas'];
-let dados=JSON.parse(localStorage.getItem('cdv_financeiro')||'[]');
-const hoje=new Date(); data.value=hoje.toISOString().slice(0,10); mes.value=hoje.toISOString().slice(0,7);
-function money(v){return Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
-function fill(){
- cat.innerHTML=cats.map(x=>`<option>${x}</option>`).join('');
- fcat.innerHTML='<option value="">Todas as categorias</option>'+cats.map(x=>`<option>${x}</option>`).join('');
-}
+const KEY='cdv_financeiro_v1';
+let data=JSON.parse(localStorage.getItem(KEY)||'[]');
+let deferredPrompt=null;
+const brl=n=>n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+document.getElementById('date').value=new Date().toISOString().slice(0,10);
+document.getElementById('month').value=new Date().toISOString().slice(0,7);
+
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('install').style.display='block'});
+async function installApp(){if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt=null}
+function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
 function add(){
- let v=+valor.value;
- if(!desc.value.trim()||!v||v<0)return alert('Preencha descrição e valor.');
- dados.push({id:Date.now(),tipo:tipo.value,data:data.value,desc:desc.value.trim(),cat:cat.value,valor:v});
- localStorage.setItem('cdv_financeiro',JSON.stringify(dados)); desc.value='';valor.value='';render();
+ const type=document.getElementById('type').value, amount=Number(document.getElementById('amount').value);
+ const category=document.getElementById('category').value, date=document.getElementById('date').value, desc=document.getElementById('desc').value.trim();
+ if(!amount||amount<=0||!date){alert('Informe valor e data.');return}
+ data.unshift({id:Date.now(),type,amount,category,date,desc:desc||category});save();clearForm();
 }
-function remove(id){dados=dados.filter(x=>x.id!==id);localStorage.setItem('cdv_financeiro',JSON.stringify(dados));render()}
-function filtrados(){return dados.filter(x=>(!mes.value||x.data.slice(0,7)===mes.value)&&(!fcat.value||x.cat===fcat.value))}
+function clearForm(){document.getElementById('amount').value='';document.getElementById('desc').value=''}
+function filtered(){
+ const m=document.getElementById('month').value,t=document.getElementById('filterType').value;
+ return data.filter(x=>(!m||x.date.startsWith(m))&&(t==='all'||x.type===t)).sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id)
+}
 function render(){
- const arr=filtrados(), rec=arr.filter(x=>x.tipo==='receita').reduce((a,x)=>a+x.valor,0), desp=arr.filter(x=>x.tipo==='despesa').reduce((a,x)=>a+x.valor,0);
- receitas.textContent=money(rec);despesas.textContent=money(desp);saldo.textContent=money(rec-desp);margem.textContent=(rec?(100*(rec-desp)/rec:0).toFixed(1)+'%':'0%');
- lista.innerHTML=arr.length?arr.slice().sort((a,b)=>b.data.localeCompare(a.data)||b.id-a.id).map(x=>`<div class="expense"><div><b>${x.desc}</b><br><small>${new Date(x.data+'T12:00').toLocaleDateString('pt-BR')} • ${x.cat} • ${x.tipo==='receita'?'Receita':'Despesa'}</small></div><div style="text-align:right"><b class="${x.tipo==='receita'?'green':'red'}">${x.tipo==='receita'?'+':'-'} ${money(x.valor)}</b><br><button class="del" onclick="remove(${x.id})">Excluir</button></div></div>`).join(''):'<div class="empty">Nenhum lançamento neste período.</div>';
- let map={};arr.forEach(x=>{map[x.cat]=(map[x.cat]||0)+(x.tipo==='despesa'?x.valor:-x.valor)}); categorias.innerHTML=Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="row"><span>${k}</span><b class="${v>=0?'red':'green'}">${money(Math.abs(v))}</b></div>`).join('')||'<div class="empty">Sem dados.</div>';
+ const rows=filtered(), tin=rows.filter(x=>x.type==='in').reduce((s,x)=>s+x.amount,0), tout=rows.filter(x=>x.type==='out').reduce((s,x)=>s+x.amount,0);
+ document.getElementById('totalIn').textContent=brl(tin);document.getElementById('totalOut').textContent=brl(tout);document.getElementById('balance').textContent=brl(tin-tout);
+ const el=document.getElementById('list');
+ if(!rows.length){el.innerHTML='<div class="empty">Nenhum lançamento neste período.</div>';return}
+ el.innerHTML=rows.map(x=>`<div class="item"><div><strong>${esc(x.desc)}</strong><div class="meta">${x.date.split('-').reverse().join('/')} · ${esc(x.category)}</div></div><div class="amt ${x.type==='in'?'in':'out'}">${x.type==='in'?'+':'−'} ${brl(x.amount)}<br><button style="padding:5px 8px;margin-top:5px;font-size:11px" onclick="del(${x.id})">Excluir</button></div></div>`).join('');
 }
-function exportar(){
- let arr=filtrados(), csv='Data;Tipo;Descrição;Categoria;Valor\\n'+arr.map(x=>`${x.data};${x.tipo};"${x.desc.replaceAll('"','""')}";"${x.cat}";${x.valor.toFixed(2).replace('.',',')}`).join('\\n');
- let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='comida-de-vo-financeiro.csv';a.click();
-}
-tipo.onchange=()=>{ /* categorias permanecem completas para facilitar o lançamento */ };
-mes.onchange=render;fcat.onchange=render;fill();render();
-if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
-</script></body></html>
+function del(id){if(confirm('Excluir este lançamento?')){data=data.filter(x=>x.id!==id);save()}}
+function clearAll(){if(confirm('Apagar TODOS os lançamentos?')){data=[];save()}}
+function exportData(){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='comida-de-vo-financeiro.json';a.click();URL.revokeObjectURL(a.href)}
+function esc(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+render();
+</script>
+</body>
+</html>

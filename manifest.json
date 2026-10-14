@@ -3,7 +3,8 @@
   "short_name": "CDV Financeiro",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#f5f2ee",
-  "theme_color": "#7b3f00",
-  "lang": "pt-BR"
+  "background_color": "#f3f4f6",
+  "theme_color": "#111827",
+  "lang": "pt-BR",
+  "description": "Controle financeiro da Comida de Vó"
 }
