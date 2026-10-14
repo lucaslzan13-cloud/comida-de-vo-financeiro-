@@ -30,9 +30,11 @@ jobs:
           gradle-version: '9.6.0'
       - name: Gerar APK
         run: gradle assembleRelease --no-daemon
+      - name: Conferir APK gerado
+        run: find app/build/outputs/apk/release -maxdepth 1 -type f -print
       - name: Publicar APK
         uses: actions/upload-artifact@v4
         with:
           name: comida-de-vo-clientes-apk
-          path: android/app/build/outputs/apk/release/app-release.apk
+          path: android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
