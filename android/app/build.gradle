@@ -8,8 +8,8 @@ android {
         applicationId 'br.com.comidadevo.clientes'
         minSdk 24
         targetSdk 36
-        versionCode 1
-        versionName '1.0'
+        versionCode 2
+        versionName '1.1'
     }
 
     buildTypes {
@@ -25,9 +25,22 @@ tasks.register('syncClientesWeb', Copy) {
         include('clientes.html')
         include('manifest-clientes.json')
         include('sw-clientes.js')
+        include('google-sync.js')
     }
     into(layout.projectDirectory.dir('src/main/assets'))
     rename('clientes.html', 'index.html')
 }
 
-tasks.named('preBuild').configure { dependsOn('syncClientesWeb') }
+tasks.register('injectClientesSync') {
+    dependsOn('syncClientesWeb')
+    doLast {
+        def f = file('src/main/assets/index.html')
+        def html = f.getText('UTF-8')
+        if (!html.contains('google-sync.js')) {
+            html = html.replace('</head>', '<script type="module" src="google-sync.js"></script></head>')
+            f.write(html, 'UTF-8')
+        }
+    }
+}
+
+tasks.named('preBuild').configure { dependsOn('injectClientesSync') }
