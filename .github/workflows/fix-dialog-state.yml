@@ -1,0 +1,20 @@
+name: Fix dialog state
+on:
+  push:
+    paths:
+      - dialog-trigger.txt
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python tools/fix_dialog_state.py
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add clientes.html
+          git rm -f tools/fix_dialog_state.py dialog-trigger.txt .github/workflows/fix-dialog-state.yml
+          git commit -m "Corrige dialogo do app de clientes" || exit 0
+          git push
