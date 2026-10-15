@@ -43,10 +43,19 @@ public class MainActivity extends Activity {
         getWindow().setNavigationBarColor(Color.rgb(243, 244, 246));
 
         FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(Color.rgb(17, 24, 39));
         webView = new WebView(this);
         ProgressBar progress = new ProgressBar(this);
         FrameLayout.LayoutParams progressParams = new FrameLayout.LayoutParams(72, 72);
         progressParams.gravity = android.view.Gravity.CENTER;
+
+        // Mantém todo o conteúdo abaixo da barra de status sem usar WindowInsets,
+        // evitando o problema de estabilidade que ocorreu nas versões anteriores.
+        int statusBarHeight = 0;
+        int statusBarId = getResources().getIdentifier("status_bar_height", "dimen", "android");
+        if (statusBarId > 0) statusBarHeight = getResources().getDimensionPixelSize(statusBarId);
+        root.setPadding(0, statusBarHeight, 0, 0);
+
         root.addView(webView, new FrameLayout.LayoutParams(-1, -1));
         root.addView(progress, progressParams);
         setContentView(root);
