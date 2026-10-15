@@ -5,10 +5,6 @@ import android.content.Context;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.CancellationSignal;
-import android.view.View;
-import android.view.Window;
-import android.view.WindowInsets;
-import android.view.WindowInsetsController;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
@@ -34,7 +30,7 @@ import org.json.JSONObject;
 
 import java.util.concurrent.Executors;
 
-public class MainActivity extends Activity {
+public class MainActivity {
     private static final String APP_URL = "https://lucaslzan13-cloud.github.io/comida-de-vo-financeiro-/clientes.html";
     private static final String SYNC_URL = "https://lucaslzan13-cloud.github.io/comida-de-vo-financeiro-/google-sync.js?v=10";
     private WebView webView;
@@ -43,16 +39,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Window window = getWindow();
-        window.setStatusBarColor(Color.rgb(17, 24, 39));
-        window.setNavigationBarColor(Color.rgb(243, 244, 246));
-        if (android.os.Build.VERSION.SDK_INT >= 30) {
-            window.setDecorFitsSystemWindows(true);
-            WindowInsetsController controller = window.getInsetsController();
-            if (controller != null) {
-                controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_DEFAULT);
-            }
-        }
+        getWindow().setStatusBarColor(Color.rgb(17, 24, 39));
+        getWindow().setNavigationBarColor(Color.rgb(243, 244, 246));
 
         FrameLayout root = new FrameLayout(this);
         webView = new WebView(this);
@@ -62,15 +50,6 @@ public class MainActivity extends Activity {
         root.addView(webView, new FrameLayout.LayoutParams(-1, -1));
         root.addView(progress, progressParams);
         setContentView(root);
-
-        if (android.os.Build.VERSION.SDK_INT >= 30) {
-            root.setOnApplyWindowInsetsListener((v, insets) -> {
-                android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars());
-                webView.setPadding(0, bars.top, 0, bars.bottom);
-                return insets;
-            });
-            root.requestApplyInsets();
-        }
 
         credentialManager = CredentialManager.create(this);
         webView.addJavascriptInterface(new GoogleBridge(this), "AndroidGoogle");
@@ -102,14 +81,14 @@ public class MainActivity extends Activity {
         webView.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) { return false; }
             @Override public void onPageFinished(WebView view, String url) {
-                progress.setVisibility(View.GONE);
+                progress.setVisibility(android.view.View.GONE);
                 view.evaluateJavascript("(function(){document.documentElement.style.webkitUserSelect='none';document.documentElement.style.userSelect='none';document.documentElement.style.webkitTouchCallout='none';document.addEventListener('contextmenu',function(e){var t=e.target;if(!t.matches('input,textarea,select,[contenteditable=true]'))e.preventDefault();},{passive:false});document.addEventListener('selectstart',function(e){var t=e.target;if(!t.matches('input,textarea,select,[contenteditable=true]'))e.preventDefault();},{passive:false});var s=document.querySelector('script[data-cdv-sync]');if(!s){s=document.createElement('script');s.type='module';s.src='" + SYNC_URL + "';s.setAttribute('data-cdv-sync','1');document.head.appendChild(s);}})();", null);
             }
-            @Override public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) { progress.setVisibility(View.GONE); }
+            @Override public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) { progress.setVisibility(android.view.View.GONE); }
         });
 
         if (savedInstanceState == null) webView.loadUrl(APP_URL);
-        else { webView.restoreState(savedInstanceState); progress.setVisibility(View.GONE); }
+        else { webView.restoreState(savedInstanceState); progress.setVisibility(android.view.View.GONE); }
     }
 
     private void sendToWeb(String function, String value) {
