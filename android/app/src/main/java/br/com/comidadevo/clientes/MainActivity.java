@@ -51,8 +51,6 @@ public class MainActivity extends Activity {
             WindowInsetsController controller = window.getInsetsController();
             if (controller != null) {
                 controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_DEFAULT);
-                controller.setAppearanceLightStatusBars(false);
-                controller.setAppearanceLightNavigationBars(true);
             }
         }
 
