@@ -31,8 +31,8 @@ import org.json.JSONObject;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
-    private static final String APP_URL = "https://lucaslzan13-cloud.github.io/comida-de-vo-financeiro-/clientes.html";
-    private static final String SYNC_URL = "https://lucaslzan13-cloud.github.io/comida-de-vo-financeiro-/google-sync.js?v=10";
+    // Versão na URL evita que o WebView reutilize uma versão antiga do HTML/sincronização.
+    private static final String APP_URL = "https://lucaslzan13-cloud.github.io/comida-de-vo-financeiro-/clientes.html?v=13";
     private WebView webView;
     private CredentialManager credentialManager;
 
@@ -49,8 +49,6 @@ public class MainActivity extends Activity {
         FrameLayout.LayoutParams progressParams = new FrameLayout.LayoutParams(72, 72);
         progressParams.gravity = android.view.Gravity.CENTER;
 
-        // Mantém todo o conteúdo abaixo da barra de status sem usar WindowInsets,
-        // evitando o problema de estabilidade que ocorreu nas versões anteriores.
         int statusBarHeight = 0;
         int statusBarId = getResources().getIdentifier("status_bar_height", "dimen", "android");
         if (statusBarId > 0) statusBarHeight = getResources().getDimensionPixelSize(statusBarId);
@@ -81,7 +79,8 @@ public class MainActivity extends Activity {
         settings.setDisplayZoomControls(false);
         settings.setSupportZoom(false);
         settings.setTextZoom(100);
-        settings.setCacheMode(android.webkit.WebSettings.LOAD_DEFAULT);
+        // Não deixa o WebView manter a versão antiga do app/sync em cache.
+        settings.setCacheMode(android.webkit.WebSettings.LOAD_NO_CACHE);
         settings.setMediaPlaybackRequiresUserGesture(true);
         if (android.os.Build.VERSION.SDK_INT >= 26) settings.setSafeBrowsingEnabled(true);
         CookieManager.getInstance().setAcceptCookie(true);
@@ -91,7 +90,10 @@ public class MainActivity extends Activity {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) { return false; }
             @Override public void onPageFinished(WebView view, String url) {
                 progress.setVisibility(android.view.View.GONE);
-                view.evaluateJavascript("(function(){document.documentElement.style.webkitUserSelect='none';document.documentElement.style.userSelect='none';document.documentElement.style.webkitTouchCallout='none';document.addEventListener('contextmenu',function(e){var t=e.target;if(!t.matches('input,textarea,select,[contenteditable=true]'))e.preventDefault();},{passive:false});document.addEventListener('selectstart',function(e){var t=e.target;if(!t.matches('input,textarea,select,[contenteditable=true]'))e.preventDefault();},{passive:false});var s=document.querySelector('script[data-cdv-sync]');if(!s){s=document.createElement('script');s.type='module';s.src='" + SYNC_URL + "';s.setAttribute('data-cdv-sync','1');document.head.appendChild(s);}})();", null);
+                // A página clientes.html já carrega google-sync.js.
+                // Não injetar o módulo novamente: duas instâncias causavam concorrência
+                // entre listeners do Firebase e podiam fazer um aparelho sobrescrever o outro.
+                view.evaluateJavascript("(function(){document.documentElement.style.webkitUserSelect='none';document.documentElement.style.userSelect='none';document.documentElement.style.webkitTouchCallout='none';document.addEventListener('contextmenu',function(e){var t=e.target;if(!t.matches('input,textarea,select,[contenteditable=true]'))e.preventDefault();},{passive:false});document.addEventListener('selectstart',function(e){var t=e.target;if(!t.matches('input,textarea,select,[contenteditable=true]'))e.preventDefault();},{passive:false});})();", null);
             }
             @Override public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) { progress.setVisibility(android.view.View.GONE); }
         });
