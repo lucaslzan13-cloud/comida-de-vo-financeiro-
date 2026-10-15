@@ -32,7 +32,7 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
     private static final String APP_URL = "https://lucaslzan13-cloud.github.io/comida-de-vo-financeiro-/clientes.html";
-    private static final String SYNC_URL = "https://lucaslzan13-cloud.github.io/comida-de-vo-financeiro-/google-sync.js?v=7";
+    private static final String SYNC_URL = "https://lucaslzan13-cloud.github.io/comida-de-vo-financeiro-/google-sync.js?v=8";
     private WebView webView;
     private CredentialManager credentialManager;
 
