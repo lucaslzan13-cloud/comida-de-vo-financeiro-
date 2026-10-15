@@ -32,7 +32,7 @@ section{background:#fff;border-radius:18px;padding:15px;margin-bottom:12px;box-s
 <div id="toast" class="toast"></div>
 <script>
 const KEY='cdv_clientes_v2',DB_NAME='cdv_clientes_db',DB_VERSION=1,STORE='state';
-let state={clients:[],events:[]},selectedId=null,deferredPrompt=null,db=null;
+let state={clients:[],events:[]},selectedId=null,deferredPrompt=null,db=null,dialogResolve=null;
 const today=()=>new Date().toISOString().slice(0,10),brl=n=>Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}),byId=id=>document.getElementById(id);
 function setStatus(text,kind=''){const e=byId('status');e.textContent=text;e.className='status '+kind}
 function openDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB_NAME,DB_VERSION);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE,{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
