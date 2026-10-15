@@ -21,5 +21,76 @@ function watch(u){if(watchStarted)return;watchStarted=true;onSnapshot(doc(db,'us
 window.__nativeGoogleLogin=async function(idToken){try{setStatus('Confirmando sua conta Google...');const credential=GoogleAuthProvider.credential(idToken);await signInWithCredential(auth,credential);localStorage.setItem(CONNECTED,'1');setStatus('Google conectado. Sincronizando...','ok')}catch(e){setStatus('Erro ao conectar Google: '+(e.code||e.message),'warn')}};
 window.__nativeGoogleError=function(message){setStatus(message||'Não foi possível entrar com o Google.','warn')};
 function monitorLocal(){setInterval(async()=>{if(!ready||writingRemote||!auth.currentUser||window.__cdvFinanceApplyingSync)return;const s=localState(),j=JSON.stringify(s);if(j!==lastLocal){const stamp=Date.now();lastLocal=j;writeMeta(stamp);try{await push(auth.currentUser,s,stamp)}catch(_){setStatus('Aguardando conexão para sincronizar.','warn')}}},1200)}
+
+/* Correção da tela de Entradas: Entrada usa somente a forma de recebimento. */
+(function(){
+  const ENTRY_METHODS=['Dinheiro','Cartão','Pix','Pix Online','iFood'];
+  const ENTRY_KEY='cdv_financeiro_entry_method';
+  const originalSetType=window.setType;
+  const originalAdd=window.add;
+  let entryMode=document.getElementById('inBtn')?.classList.contains('active')||false;
+
+  function esc(s){return String(s).replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#039;'}[m]))}
+  function escAttr(s){return String(s).replace(/&/g,'&amp;').replace(/\"/g,'&quot;').replace(/'/g,'&#039;')}
+
+  function renderEntryOptions(){
+    const chips=document.getElementById('chips'),select=document.getElementById('categorySelect');
+    if(!chips||!select)return;
+    const saved=ENTRY_METHODS.includes(localStorage.getItem(ENTRY_KEY))?localStorage.getItem(ENTRY_KEY):'Dinheiro';
+    localStorage.setItem(ENTRY_KEY,saved);
+    chips.innerHTML=ENTRY_METHODS.map(m=>`<button class="chip ${m===saved?'selected':''}" onclick="window.__cdvSelectEntryMethod('${escAttr(m)}')">${esc(m)}</button>`).join('');
+    select.innerHTML=ENTRY_METHODS.map(m=>`<option value="${escAttr(m)}" ${m===saved?'selected':''}>${esc(m)}</option>`).join('');
+    const label=select.parentElement?.querySelector('label');
+    if(label)label.textContent='Forma de recebimento';
+    select.onchange=()=>window.__cdvSelectEntryMethod(select.value);
+  }
+
+  function restoreExpenseOptions(){
+    const label=document.getElementById('categorySelect')?.parentElement?.querySelector('label');
+    if(label)label.textContent='Categoria escolhida';
+    window.renderCats?.();
+  }
+
+  window.__cdvSelectEntryMethod=function(method){
+    if(!ENTRY_METHODS.includes(method))return;
+    localStorage.setItem(ENTRY_KEY,method);
+    renderEntryOptions();
+  };
+
+  window.setType=function(type){
+    entryMode=type==='in';
+    originalSetType?.(type);
+    if(entryMode)renderEntryOptions();else restoreExpenseOptions();
+  };
+
+  window.add=async function(){
+    if(!entryMode){return originalAdd?.();}
+    const input=document.getElementById('amount'),dateEl=document.getElementById('date'),descEl=document.getElementById('desc');
+    const raw=String(input?.value||'').trim().replace(/R\$\s?/gi,'');
+    const normalized=raw.includes(',')?raw.replace(/\./g,'').replace(',','.'):raw;
+    const amount=Number(normalized)||0;
+    if(!amount||amount<=0){input?.focus();setStatus('Digite o valor');return;}
+    const method=ENTRY_METHODS.includes(localStorage.getItem(ENTRY_KEY))?localStorage.getItem(ENTRY_KEY):'Dinheiro';
+    const date=dateEl?.value||new Date().toISOString().slice(0,10);
+    const desc=String(descEl?.value||'').trim();
+    const data=localState();
+    const item={id:crypto.randomUUID(),type:'in',amount,category:method,date,desc:desc||method,createdAt:Date.now()};
+    data.unshift(item);
+    window.__cdvFinanceSetData?.(data);
+    input.value='';if(descEl)descEl.value='';if(dateEl)dateEl.value=date;
+    renderEntryOptions();
+    setStatus('Entrada salva','ok');
+    const toast=document.getElementById('toast');if(toast){toast.textContent='Entrada salva';toast.classList.add('show');clearTimeout(window.__cdvEntryToast);window.__cdvEntryToast=setTimeout(()=>toast.classList.remove('show'),1400)}
+    input.focus();
+  };
+
+  window.__cdvRefreshEntryUI=function(){
+    entryMode=document.getElementById('inBtn')?.classList.contains('active')||false;
+    if(entryMode)renderEntryOptions();
+  };
+
+  if(entryMode)renderEntryOptions();
+})();
+
 async function init(){ui();try{await setPersistence(auth,browserLocalPersistence)}catch(_){}if(!window.AndroidGoogle){try{await getRedirectResult(auth)}catch(e){setStatus('Login Google: '+(e.code||e.message),'warn')}}onAuthStateChanged(auth,async u=>{if(u){authResolved=true;updateUI(u);ready=true;try{await pull(u);watch(u);setStatus('Sincronização Google ativa.','ok')}catch(e){setStatus('Erro na sincronização: '+(e.code||e.message),'warn')}}else{authResolved=true;ready=false;updateUI(null);if(localStorage.getItem(CONNECTED)==='1')setStatus('Conectando à conta Google...')}});monitorLocal()}
 init();
