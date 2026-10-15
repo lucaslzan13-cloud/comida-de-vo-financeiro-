@@ -1,5 +1,10 @@
 /* Comida de Vó — sincronização Google/Firebase entre aparelhos. */
-/* build trigger: correção de sessão Google persistente */
+/* Singleton: o WebView antigo podia injetar este módulo duas vezes. */
+if (window.__CDV_GOOGLE_SYNC_LOADED) {
+  throw new Error('CDV Google Sync já está carregado');
+}
+window.__CDV_GOOGLE_SYNC_LOADED = true;
+
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, browserLocalPersistence, setPersistence, onAuthStateChanged, signInWithRedirect, getRedirectResult, signInWithCredential, signOut } from 'https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js';
 import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js';
