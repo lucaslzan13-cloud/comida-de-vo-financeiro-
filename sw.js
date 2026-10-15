@@ -1,7 +1,7 @@
-const CACHE='cdv-financeiro-v8';
-const ASSETS=['./','./index.html','./manifest.json','./icon.svg','./google-sync.js'];
+const CACHE='cdv-financeiro-v9';
+const ASSETS=['./','./index.html','./manifest.json','./icon.svg','./finance-google-sync.js'];
 const GOOGLE_SCRIPT=`<script src="./google-sync.js"></script>`;
-async function prepare(response){if(!response||!response.ok)return response;const type=response.headers.get('content-type')||'';if(!type.includes('text/html'))return response;try{let text=await response.text();if(!text.includes('cdvGoogleBtn'))text=text.replace('</head>',GOOGLE_SCRIPT+'</head>');const h=new Headers();h.set('content-type','text/html; charset=utf-8');return new Response(text,{status:response.status,statusText:response.statusText,headers:h})}catch(_){return response}}
+async function prepare(response){if(!response||!response.ok)return response;const type=response.headers.get('content-type')||'';if(!type.includes('text/html'))return response;try{let text=await response.text();if(!text.includes('cdvGoogleBtn'))text=text.replace('</head>',GOOGLE_SCRIPT+'</head>');const h=new Headers(response.headers);h.set('content-type','text/html; charset=utf-8');return new Response(text,{status:response.status,statusText:response.statusText,headers:h})}catch(_){return response}}
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(async c=>{for(const a of ASSETS){try{const r=await fetch(new Request(a,{cache:'no-store'}));const p=await prepare(r);if(p&&p.ok)await c.put(a,p.clone())}catch(_){}}}).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;event.respondWith(fetch(new Request(event.request,{cache:'no-store'})).then(async r=>{const p=await prepare(r);if(p&&p.ok){try{const c=await caches.open(CACHE);await c.put(event.request,p.clone())}catch(_){}}return p}).catch(()=>caches.match(event.request).then(r=>r||caches.match('./index.html'))))});
