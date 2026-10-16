@@ -8,8 +8,8 @@ android {
         applicationId 'br.com.comidadevo.financeiro'
         minSdk 24
         targetSdk 36
-        versionCode 21
-        versionName '3.4'
+        versionCode 22
+        versionName '3.5'
     }
 
     signingConfigs {
@@ -28,52 +28,3 @@ android {
 }
 
 dependencies { }
-
-tasks.named('preBuild').configure {
-    doFirst {
-        def f = file('src/main/java/br/com/comidadevo/financeiro/MainActivity.java')
-        def s = f.getText('UTF-8')
-        if (!s.contains('AUTO_DRIVE_34')) {
-            s = s.replace('import android.content.*;', 'import android.content.*;\nimport android.net.Uri;')
-            s = s.replace('private static final int REQ_RESTORE=9001, REQ_BACKUP=9002;', 'private static final int REQ_RESTORE=9001, REQ_BACKUP=9002;\n    // AUTO_DRIVE_34')
-            s = s.replace('TextView backup=action("Fazer backup",14);backup.setBackground(bg(Color.rgb(229,231,235),12,0));backup.setOnClickListener(v->backup());', 'TextView backup=action("Configurar Google Drive",14);backup.setBackground(bg(Color.rgb(229,231,235),12,0));backup.setOnClickListener(v->backup());')
-            s = s.replace('persist();clearForm();refresh();Toast.makeText(this,editing?"Alteração salva":"Lançamento salvo",Toast.LENGTH_SHORT).show();}', 'persist();AutoDrive34.save(this,dataJson());clearForm();refresh();Toast.makeText(this,editing?"Alteração salva":"Lançamento salvo",Toast.LENGTH_SHORT).show();}')
-            s = s.replace('@Override protected void onActivityResult(int requestCode,int resultCode,Intent intent){', '@Override protected void onActivityResult(int requestCode,int resultCode,Intent intent){\n        AutoDrive34.handle(this,requestCode,resultCode,intent);')
-            int p = s.indexOf('    private void backup(){')
-            int q = s.indexOf('    private void restore(){', p)
-            if (p >= 0 && q > p) {
-                s = s.substring(0,p) + '    private void backup(){ AutoDrive34.setup(this); }\n' + s.substring(q)
-            }
-            int last = s.lastIndexOf('}')
-            def helper = '''
-    static class AutoDrive34 {
-        private static final String KEY="drive_backup_uri";
-        private static final int REQ=9002;
-        static void setup(Activity a){
-            Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);
-            i.addCategory(Intent.CATEGORY_OPENABLE);
-            i.setType("application/json");
-            i.putExtra(Intent.EXTRA_TITLE,"comida-de-vo-financeiro-auto.json");
-            a.startActivityForResult(i,REQ);
-        }
-        static void handle(Activity a,int requestCode,int resultCode,Intent intent){
-            if(requestCode!=REQ || resultCode!=RESULT_OK || intent==null || intent.getData()==null) return;
-            Uri u=intent.getData();
-            try{a.getContentResolver().takePersistableUriPermission(u,Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);}catch(Exception ignored){}
-            a.getSharedPreferences("financeiro_native",MODE_PRIVATE).edit().putString(KEY,u.toString()).apply();
-            Toast.makeText(a,"Google Drive configurado. Backup automático ativado.",Toast.LENGTH_LONG).show();
-        }
-        static void save(Activity a,JSONObject data){
-            String raw=a.getSharedPreferences("financeiro_native",MODE_PRIVATE).getString(KEY,"");
-            if(raw.length()==0)return;
-            try(OutputStream out=a.getContentResolver().openOutputStream(Uri.parse(raw),"wt")){
-                if(out!=null)out.write(data.toString(2).getBytes("UTF-8"));
-            }catch(Exception ignored){}
-        }
-    }
-''' 
-            s = s.substring(0,last) + helper + s.substring(last)
-            f.setText(s,'UTF-8')
-        }
-    }
-}
