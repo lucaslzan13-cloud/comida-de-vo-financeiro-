@@ -8,8 +8,8 @@ android {
         applicationId 'br.com.comidadevo.financeiro'
         minSdk 24
         targetSdk 36
-        versionCode 11
-        versionName '2.0'
+        versionCode 12
+        versionName '2.1'
     }
 
     buildTypes {
@@ -35,24 +35,18 @@ tasks.register('syncFinanceiroWeb', Copy) {
         include('entry-fix.js')
         include('clean-ui.js')
         include('final-ui.js')
+        include('force-entry-ui.js')
     }
     into(layout.projectDirectory.dir('src/main/assets'))
     rename('index.html', 'index.html')
     doLast {
         def page = layout.projectDirectory.file('src/main/assets/index.html').asFile
         def html = page.getText('UTF-8')
-        if (!html.contains('finance-google-sync.js')) {
-            html = html.replace('</body>', '<script type="module" src="finance-google-sync.js"></script>\n</body>')
-        }
-        if (!html.contains('entry-fix.js')) {
-            html = html.replace('</body>', '<script src="entry-fix.js"></script>\n</body>')
-        }
-        if (!html.contains('clean-ui.js')) {
-            html = html.replace('</body>', '<script src="clean-ui.js"></script>\n</body>')
-        }
-        if (!html.contains('final-ui.js')) {
-            html = html.replace('</body>', '<script src="final-ui.js"></script>\n</body>')
-        }
+        if (!html.contains('finance-google-sync.js')) html = html.replace('</body>', '<script type="module" src="finance-google-sync.js"></script>\n</body>')
+        if (!html.contains('entry-fix.js')) html = html.replace('</body>', '<script src="entry-fix.js"></script>\n</body>')
+        if (!html.contains('clean-ui.js')) html = html.replace('</body>', '<script src="clean-ui.js"></script>\n</body>')
+        if (!html.contains('final-ui.js')) html = html.replace('</body>', '<script src="final-ui.js"></script>\n</body>')
+        if (!html.contains('force-entry-ui.js')) html = html.replace('</body>', '<script src="force-entry-ui.js"></script>\n</body>')
         page.setText(html, 'UTF-8')
     }
 }
