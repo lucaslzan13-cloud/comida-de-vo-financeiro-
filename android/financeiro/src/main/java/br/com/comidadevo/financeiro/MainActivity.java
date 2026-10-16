@@ -1,124 +1,72 @@
 package br.com.comidadevo.financeiro;
 
-import android.app.Activity;
-import android.content.Context;
+import android.app.*;
+import android.content.*;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.Bundle;
-import android.os.CancellationSignal;
-import android.webkit.CookieManager;
-import android.webkit.JavascriptInterface;
-import android.webkit.WebChromeClient;
-import android.webkit.WebResourceRequest;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
-import android.widget.FrameLayout;
-import android.widget.ProgressBar;
-
-import androidx.annotation.NonNull;
-import androidx.credentials.Credential;
-import androidx.credentials.CredentialManager;
-import androidx.credentials.CredentialManagerCallback;
-import androidx.credentials.CustomCredential;
-import androidx.credentials.GetCredentialRequest;
-import androidx.credentials.GetCredentialResponse;
-import androidx.credentials.exceptions.GetCredentialException;
-
-import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption;
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
-
-import org.json.JSONObject;
-
-import java.util.concurrent.Executors;
+import android.view.*;
+import android.widget.*;
+import org.json.*;
+import java.text.*;
+import java.util.*;
 
 public class MainActivity extends Activity {
-    private static final String APP_URL = "file:///android_asset/index.html";
-    private WebView webView;
-    private CredentialManager credentialManager;
+    private static final int BG=Color.rgb(243,244,246), NAVY=Color.rgb(17,24,39), GREEN=Color.rgb(22,132,67), RED=Color.rgb(190,35,35), BLUE=Color.rgb(37,84,204), BORDER=Color.rgb(210,214,220);
+    private final String[] ENTRY={"Dinheiro","Cartão","Pix","Pix Online","iFood"};
+    private final String[] EXPENSE={"Mercado","Açougue","Embalagens","Funcionários","Motoboy","Contas","Água","Luz","Mais"};
+    private ArrayList<Tx> data=new ArrayList<>();
+    private SharedPreferences prefs;
+    private LinearLayout root, categoryBox, historyBox;
+    private TextView inTotal,outTotal,balance,saveButton,editingLabel;
+    private EditText amount,description;
+    private Button inButton,outButton,dateButton;
+    private String type="out", category="Mercado", date;
+    private String editingId=null;
 
-    @Override protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        getWindow().setStatusBarColor(Color.rgb(17,24,39));
-        getWindow().setNavigationBarColor(Color.rgb(243,244,246));
+    @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().setStatusBarColor(NAVY);getWindow().setNavigationBarColor(BG);prefs=getSharedPreferences("financeiro_native",MODE_PRIVATE);load();date=today();build();}
+    private String today(){return new SimpleDateFormat("yyyy-MM-dd",Locale.US).format(new Date());}
+    private int dp(int n){return (int)(n*getResources().getDisplayMetrics().density+.5f);}
+    private TextView tv(String s,int sp,int color,boolean bold){TextView v=new TextView(this);v.setText(s);v.setTextSize(sp);v.setTextColor(color);v.setTypeface(Typeface.DEFAULT,bold?Typeface.BOLD:Typeface.NORMAL);return v;}
+    private GradientDrawable bg(int color,int r,int stroke){GradientDrawable g=new GradientDrawable();g.setColor(color);g.setCornerRadius(dp(r));if(stroke>0)g.setStroke(dp(1),BORDER);return g;}
+    private Button btn(String text){Button b=new Button(this);b.setText(text);b.setTextSize(15);b.setAllCaps(false);b.setTypeface(Typeface.DEFAULT,Typeface.BOLD);b.setTextColor(NAVY);b.setPadding(dp(8),0,dp(8),0);return b;}
+    private LinearLayout card(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);l.setPadding(dp(20),dp(18),dp(20),dp(18));l.setBackground(bg(Color.WHITE,24,0));return l;}
+    private void margin(View v,int top,int bottom){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.setMargins(0,dp(top),0,dp(bottom));v.setLayoutParams(p);}
 
-        FrameLayout root = new FrameLayout(this);
-        root.setBackgroundColor(Color.rgb(17,24,39));
-        webView = new WebView(this);
-        ProgressBar progress = new ProgressBar(this);
-        FrameLayout.LayoutParams pp = new FrameLayout.LayoutParams(72,72);
-        pp.gravity = android.view.Gravity.CENTER;
-
-        // Mantém o conteúdo abaixo da barra de status, sem WindowInsets instáveis.
-        int statusBarHeight = 0;
-        int statusBarId = getResources().getIdentifier("status_bar_height", "dimen", "android");
-        if (statusBarId > 0) statusBarHeight = getResources().getDimensionPixelSize(statusBarId);
-        root.setPadding(0,statusBarHeight,0,0);
-
-        root.addView(webView, new FrameLayout.LayoutParams(-1,-1));
-        root.addView(progress, pp);
-        setContentView(root);
-
-        credentialManager = CredentialManager.create(this);
-        webView.addJavascriptInterface(new GoogleBridge(this), "AndroidGoogle");
-        webView.setBackgroundColor(Color.rgb(243,244,246));
-        webView.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
-        webView.setVerticalScrollBarEnabled(false);
-        webView.setHorizontalScrollBarEnabled(false);
-        webView.setSaveEnabled(true);
-        webView.setHapticFeedbackEnabled(true);
-        webView.setWebChromeClient(new WebChromeClient());
-
-        android.webkit.WebSettings settings = webView.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setDatabaseEnabled(true);
-        settings.setAllowFileAccess(true);
-        settings.setAllowContentAccess(true);
-        settings.setBuiltInZoomControls(false);
-        settings.setDisplayZoomControls(false);
-        settings.setSupportZoom(false);
-        settings.setTextZoom(100);
-        settings.setCacheMode(android.webkit.WebSettings.LOAD_DEFAULT);
-        settings.setMediaPlaybackRequiresUserGesture(true);
-        if (android.os.Build.VERSION.SDK_INT >= 26) settings.setSafeBrowsingEnabled(true);
-        CookieManager.getInstance().setAcceptCookie(true);
-        CookieManager.getInstance().setAcceptThirdPartyCookies(webView,true);
-
-        webView.setWebViewClient(new WebViewClient() {
-            @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) { return false; }
-            @Override public void onPageFinished(WebView view, String url) {
-                progress.setVisibility(android.view.View.GONE);
-                view.evaluateJavascript("(function(){document.documentElement.style.webkitUserSelect='none';document.documentElement.style.userSelect='none';document.documentElement.style.webkitTouchCallout='none';document.addEventListener('contextmenu',function(e){var t=e.target;if(!t.matches('input,textarea,select,[contenteditable=true]'))e.preventDefault();},{passive:false});document.addEventListener('selectstart',function(e){var t=e.target;if(!t.matches('input,textarea,select,[contenteditable=true]'))e.preventDefault();},{passive:false});})();",null);
-            }
-            @Override public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) { progress.setVisibility(android.view.View.GONE); }
-        });
-
-        if(savedInstanceState==null) webView.loadUrl(APP_URL); else {webView.restoreState(savedInstanceState);progress.setVisibility(android.view.View.GONE);}
+    private void build(){
+        ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(BG);root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(dp(16),dp(18),dp(16),dp(28));scroll.addView(root);setContentView(scroll);
+        LinearLayout head=new LinearLayout(this);head.setOrientation(LinearLayout.VERTICAL);head.setPadding(dp(16),dp(10),dp(16),dp(22));head.setBackground(bg(NAVY,24,0));TextView h=tv("Comida de Vó",30,Color.WHITE,true);head.addView(h);TextView sub=tv("Controle financeiro",17,Color.LTGRAY,false);head.addView(sub);root.addView(head);margin(head,0,14);
+        LinearLayout totals=new LinearLayout(this);totals.setOrientation(LinearLayout.VERTICAL);LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);inTotal=totalValue("Entradas","R$ 0,00",GREEN);outTotal=totalValue("Gastos","R$ 0,00",RED);row.addView(inTotal,new LinearLayout.LayoutParams(0,-2,1));LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(0,-2,1);rp.setMargins(dp(8),0,0,0);row.addView(outTotal,rp);totals.addView(row);balance=totalValue("Saldo do mês","R$ 0,00",BLUE);totals.addView(balance);root.addView(totals);margin(totals,0,14);
+        LinearLayout launch=card();TextView lt=tv("Lançamento",22,NAVY,true);launch.addView(lt);margin(lt,0,12);
+        LinearLayout types=new LinearLayout(this);types.setOrientation(LinearLayout.HORIZONTAL);outButton=btn("Gasto");inButton=btn("Entrada");types.addView(outButton,new LinearLayout.LayoutParams(0,dp(54),1));LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(0,dp(54),1);ip.setMargins(dp(8),0,0,0);types.addView(inButton,ip);launch.addView(types);margin(types,0,12);
+        amount=new EditText(this);amount.setHint("0,00");amount.setTextSize(32);amount.setSingleLine(true);amount.setInputType(2|8192);amount.setPadding(dp(16),0,dp(16),0);amount.setBackground(bg(Color.WHITE,16,1));launch.addView(amount);margin(amount,0,12);
+        categoryBox=new LinearLayout(this);categoryBox.setOrientation(LinearLayout.VERTICAL);launch.addView(categoryBox);margin(categoryBox,0,8);
+        editingLabel=tv("",13,BLUE,true);editingLabel.setGravity(Gravity.CENTER);launch.addView(editingLabel);margin(editingLabel,0,4);
+        TextView dl=tv("Data",13,Color.DKGRAY,false);launch.addView(dl);dateButton=btn(formatDate(date));dateButton.setGravity(Gravity.LEFT|Gravity.CENTER_VERTICAL);launch.addView(dateButton);dateButton.setOnClickListener(v->pickDate());margin(dateButton,0,10);
+        description=new EditText(this);description.setHint("Descrição (opcional)");description.setTextSize(16);description.setSingleLine(true);description.setPadding(dp(14),0,dp(14),0);description.setBackground(bg(Color.WHITE,14,1));launch.addView(description);margin(description,0,12);
+        saveButton=tv("Salvar lançamento",17,Color.WHITE,true);saveButton.setGravity(Gravity.CENTER);saveButton.setPadding(0,dp(16),0,dp(16));saveButton.setBackground(bg(NAVY,16,0));launch.addView(saveButton);saveButton.setOnClickListener(v->save());root.addView(launch);margin(launch,0,14);
+        LinearLayout tools=card();TextView tt=tv("Histórico",22,NAVY,true);tools.addView(tt);historyBox=new LinearLayout(this);historyBox.setOrientation(LinearLayout.VERTICAL);tools.addView(historyBox);Button backup=btn("Backup dos dados");backup.setBackground(bg(Color.rgb(229,231,235),14,0));backup.setOnClickListener(v->backup());tools.addView(backup);root.addView(tools);
+        outButton.setOnClickListener(v->{type="out";category="Mercado";refreshMode();});inButton.setOnClickListener(v->{type="in";category="Dinheiro";refreshMode();});refreshMode();refresh();
     }
-
-    private void sendToWeb(String function,String value){String safe=JSONObject.quote(value==null?"":value);runOnUiThread(()->{if(webView!=null)webView.evaluateJavascript("window."+function+" && window."+function+"("+safe+")",null);});}
-
-    private final class GoogleBridge {
-        private final Context context;
-        GoogleBridge(Context context){this.context=context;}
-        @JavascriptInterface public void signInGoogle(){runOnUiThread(()->{
-            String webClientId=getString(R.string.google_web_client_id);
-            if(webClientId.startsWith("COLOQUE_AQUI")){sendToWeb("__nativeGoogleError","Falta configurar o Client ID Web do Google.");return;}
-            GetSignInWithGoogleOption googleOption=new GetSignInWithGoogleOption.Builder(webClientId).build();
-            GetCredentialRequest request=new GetCredentialRequest.Builder().addCredentialOption(googleOption).build();
-            credentialManager.getCredentialAsync(context,request,new CancellationSignal(),Executors.newSingleThreadExecutor(),new CredentialManagerCallback<GetCredentialResponse,GetCredentialException>(){
-                @Override public void onResult(@NonNull GetCredentialResponse result){try{
-                    Credential credential=result.getCredential();
-                    if(credential instanceof CustomCredential && GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(credential.getType())){
-                        GoogleIdTokenCredential googleCredential=GoogleIdTokenCredential.createFrom(((CustomCredential)credential).getData());
-                        sendToWeb("__nativeGoogleLogin",googleCredential.getIdToken());
-                    }else sendToWeb("__nativeGoogleError","A conta escolhida não retornou uma credencial Google válida.");
-                }catch(Exception e){sendToWeb("__nativeGoogleError","Não foi possível ler a conta Google.");}}
-                @Override public void onError(@NonNull GetCredentialException e){sendToWeb("__nativeGoogleError",e.getLocalizedMessage()==null?"Não foi possível entrar com o Google.":e.getLocalizedMessage());}
-            });
-        });}
+    private TextView totalValue(String label,String value,int color){LinearLayout box=card();box.addView(tv(label,15,Color.GRAY,false));TextView val=tv(value,27,color,true);box.addView(val);return val;}
+    private void refreshMode(){
+        outButton.setTextColor(type.equals("out")?Color.WHITE:NAVY);outButton.setBackground(bg(type.equals("out")?NAVY:Color.WHITE,16,1));inButton.setTextColor(type.equals("in")?Color.WHITE:NAVY);inButton.setBackground(bg(type.equals("in")?GREEN:Color.WHITE,16,1));
+        categoryBox.removeAllViews();String[] arr=type.equals("in")?ENTRY:EXPENSE;LinearLayout current=new LinearLayout(this);current.setOrientation(LinearLayout.VERTICAL);for(String c:arr){Button b=btn(c);b.setTextSize(15);b.setGravity(Gravity.CENTER);b.setBackground(bg(c.equals(category)?(type.equals("in")?GREEN:NAVY):Color.WHITE,18,1));b.setTextColor(c.equals(category)?Color.WHITE:NAVY);b.setOnClickListener(v->{category=c;refreshMode();});LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(46));p.setMargins(0,0,0,dp(7));current.addView(b,p);}categoryBox.addView(current);
     }
-
-    @Override protected void onSaveInstanceState(Bundle outState){webView.saveState(outState);super.onSaveInstanceState(outState);}
-    @Override public void onBackPressed(){if(webView!=null&&webView.canGoBack())webView.goBack();else super.onBackPressed();}
-    @Override protected void onDestroy(){if(webView!=null){webView.stopLoading();webView.loadUrl("about:blank");webView.destroy();}super.onDestroy();}
+    private void pickDate(){Calendar c=Calendar.getInstance();try{c.setTime(new SimpleDateFormat("yyyy-MM-dd",Locale.US).parse(date));}catch(Exception ignored){}new DatePickerDialog(this,(v,y,m,d)->{date=String.format(Locale.US,"%04d-%02d-%02d",y,m+1,d);dateButton.setText(formatDate(date));},c.get(Calendar.YEAR),c.get(Calendar.MONTH),c.get(Calendar.DAY_OF_MONTH)).show();}
+    private String formatDate(String s){try{return new SimpleDateFormat("dd/MM/yyyy",Locale.US).format(new SimpleDateFormat("yyyy-MM-dd",Locale.US).parse(s));}catch(Exception e){return s;}}
+    private double parseAmount(){try{return Double.parseDouble(amount.getText().toString().replace(".","").replace(",","."));}catch(Exception e){return 0;}}
+    private void save(){double a=parseAmount();if(a<=0){amount.setError("Digite um valor");return;}boolean editing=editingId!=null;Tx x=editing?find(editingId):new Tx();if(x==null)return;if(!editing){x.id=UUID.randomUUID().toString();data.add(0,x);}x.type=type;x.amount=a;x.category=category;x.date=date;x.desc=description.getText().toString().trim();persist();clearForm();refresh();Toast.makeText(this,editing?"Alteração salva":"Lançamento salvo",Toast.LENGTH_SHORT).show();}
+    private void clearForm(){editingId=null;editingLabel.setText("");saveButton.setText("Salvar lançamento");amount.setText("");description.setText("");date=today();dateButton.setText(formatDate(date));type="out";category="Mercado";refreshMode();}
+    private Tx find(String id){for(Tx x:data)if(x.id.equals(id))return x;return null;}
+    private void refresh(){double ins=0,outs=0;String month=new SimpleDateFormat("yyyy-MM",Locale.US).format(new Date());for(Tx x:data){if(x.date.startsWith(month)){if(x.type.equals("in"))ins+=x.amount;else outs+=x.amount;}}setTotal(inTotal,"R$ "+money(ins),GREEN);setTotal(outTotal,"R$ "+money(outs),RED);setTotal(balance,"R$ "+money(ins-outs),ins-outs>=0?BLUE:RED);historyBox.removeAllViews();if(data.isEmpty()){TextView n=tv("Nenhum lançamento ainda.",15,Color.GRAY,false);n.setGravity(Gravity.CENTER);historyBox.addView(n);return;}for(Tx x:data)historyRow(x);}
+    private void setTotal(TextView t,String s,int color){t.setText(s);t.setTextColor(color);}
+    private String money(double n){return String.format(new Locale("pt","BR"),"%,.2f",n).replace(".","#").replace(",",".").replace("#",",");}
+    private void historyRow(Tx x){LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.VERTICAL);row.setPadding(0,dp(12),0,dp(12));TextView title=tv((x.type.equals("in")?"Entrada • ":"Gasto • ")+x.category,16,NAVY,true);row.addView(title);TextView info=tv(formatDate(x.date)+(x.desc.isEmpty()?"":" • "+x.desc),13,Color.GRAY,false);row.addView(info);LinearLayout actions=new LinearLayout(this);TextView val=tv((x.type.equals("in")?"+ R$ ":"- R$ ")+money(x.amount),17,x.type.equals("in")?GREEN:RED,true);actions.addView(val,new LinearLayout.LayoutParams(0,-2,1));Button edit=btn("Editar");Button del=btn("Excluir");edit.setOnClickListener(v->edit(x));del.setOnClickListener(v->delete(x));actions.addView(edit,new LinearLayout.LayoutParams(dp(78),dp(42)));LinearLayout.LayoutParams dd=new LinearLayout.LayoutParams(dp(78),dp(42));dd.setMargins(dp(6),0,0,0);actions.addView(del,dd);row.addView(actions);historyBox.addView(row);}
+    private void edit(Tx x){editingId=x.id;type=x.type;category=x.category;amount.setText(money(x.amount));description.setText(x.desc);date=x.date;dateButton.setText(formatDate(date));editingLabel.setText("Editando lançamento");saveButton.setText("Salvar alteração");refreshMode();amount.requestFocus();}
+    private void delete(Tx x){new AlertDialog.Builder(this).setTitle("Excluir lançamento?").setMessage(x.category+" • R$ "+money(x.amount)).setNegativeButton("Cancelar",null).setPositiveButton("Excluir",(d,w)->{data.remove(x);persist();refresh();}).show();}
+    private void persist(){JSONArray a=new JSONArray();try{for(Tx x:data){JSONObject o=new JSONObject();o.put("id",x.id);o.put("type",x.type);o.put("amount",x.amount);o.put("category",x.category);o.put("date",x.date);o.put("desc",x.desc);a.put(o);}}catch(Exception ignored){}prefs.edit().putString("data",a.toString()).apply();}
+    private void load(){try{JSONArray a=new JSONArray(prefs.getString("data","[]"));for(int i=0;i<a.length();i++){JSONObject o=a.getJSONObject(i);Tx x=new Tx();x.id=o.getString("id");x.type=o.getString("type");x.amount=o.getDouble("amount");x.category=o.getString("category");x.date=o.getString("date");x.desc=o.optString("desc","");data.add(x);}}catch(Exception ignored){}}
+    private void backup(){Intent i=new Intent(Intent.ACTION_SEND);i.setType("text/plain");i.putExtra(Intent.EXTRA_TEXT,prefs.getString("data","[]"));startActivity(Intent.createChooser(i,"Enviar backup dos dados"));}
+    static class Tx{String id,type,category,date,desc;double amount;}
 }
