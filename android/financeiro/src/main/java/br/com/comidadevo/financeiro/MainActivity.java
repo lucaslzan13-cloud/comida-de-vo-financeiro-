@@ -22,6 +22,8 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle b){
         super.onCreate(b);
+        // Oculta a barra de status/notificações para o aplicativo aproveitar toda a área superior.
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         getWindow().setStatusBarColor(NAVY);
         getWindow().setNavigationBarColor(BG);
         prefs=getSharedPreferences("financeiro_native",MODE_PRIVATE);
