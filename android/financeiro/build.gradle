@@ -8,8 +8,8 @@ android {
         applicationId 'br.com.comidadevo.financeiro'
         minSdk 24
         targetSdk 36
-        versionCode 25
-        versionName '4.0'
+        versionCode 26
+        versionName '4.0.1'
     }
 
     signingConfigs {
@@ -86,7 +86,7 @@ tasks.withType(JavaCompile).configureEach {
                                 GoogleIdTokenCredential g=GoogleIdTokenCredential.createFrom(((CustomCredential)c).getData());
                                 AuthCredential fc=GoogleAuthProvider.getCredential(g.getIdToken(),null);
                                 auth.signInWithCredential(fc).addOnSuccessListener(v->{Toast.makeText(a,"Google conectado. Sincronização automática ativada.",Toast.LENGTH_LONG).show();pull(a);watch(a);a.runOnUiThread(()->((MainActivity)a).build());}).addOnFailureListener(e->Toast.makeText(a,"Não foi possível conectar ao Google.",Toast.LENGTH_LONG).show());
-                            }catch(GoogleIdTokenParsingException e){Toast.makeText(a,"Não foi possível ler a conta Google.",Toast.LENGTH_LONG).show();}
+                            }catch(Exception e){Toast.makeText(a,"Não foi possível ler a conta Google.",Toast.LENGTH_LONG).show();}
                         }else Toast.makeText(a,"Nenhuma conta Google foi selecionada.",Toast.LENGTH_SHORT).show();
                     }
                     @Override public void onError(@NonNull GetCredentialException e){Toast.makeText(a,"Não foi possível abrir a seleção da conta Google.",Toast.LENGTH_LONG).show();}
