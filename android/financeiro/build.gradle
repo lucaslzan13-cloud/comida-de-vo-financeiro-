@@ -8,8 +8,8 @@ android {
         applicationId 'br.com.comidadevo.financeiro'
         minSdk 24
         targetSdk 36
-        versionCode 7
-        versionName '1.6'
+        versionCode 8
+        versionName '1.7'
     }
 
     buildTypes {
@@ -32,6 +32,7 @@ tasks.register('syncFinanceiroWeb', Copy) {
         include('manifest.json')
         include('sw.js')
         include('finance-google-sync.js')
+        include('entry-fix.js')
     }
     into(layout.projectDirectory.dir('src/main/assets'))
     rename('index.html', 'index.html')
@@ -40,8 +41,11 @@ tasks.register('syncFinanceiroWeb', Copy) {
         def html = page.getText('UTF-8')
         if (!html.contains('finance-google-sync.js')) {
             html = html.replace('</body>', '<script type="module" src="finance-google-sync.js"></script>\n</body>')
-            page.setText(html, 'UTF-8')
         }
+        if (!html.contains('entry-fix.js')) {
+            html = html.replace('</body>', '<script src="entry-fix.js"></script>\n</body>')
+        }
+        page.setText(html, 'UTF-8')
     }
 }
 
