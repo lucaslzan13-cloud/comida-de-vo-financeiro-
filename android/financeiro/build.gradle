@@ -9,7 +9,7 @@ android {
         minSdk 24
         targetSdk 36
         versionCode 23
-        versionName '3.6'
+        versionName '3.7'
     }
 
     signingConfigs {
@@ -29,35 +29,54 @@ android {
 
 dependencies { }
 
-// Injeta o suporte ao Google Drive imediatamente antes da compilação Java.
-// Isso evita depender da ordem do task preBuild.
 tasks.withType(JavaCompile).configureEach {
     doFirst {
         def f = file('src/main/java/br/com/comidadevo/financeiro/MainActivity.java')
         def s = f.getText('UTF-8')
-        if (!s.contains('class AutoDrive36')) {
+        if (!s.contains('class AutoDrive37')) {
             s = s.replace('import android.content.*;', 'import android.content.*;\nimport android.net.Uri;\nimport android.provider.DocumentsContract;')
             s = s.replace('private static final int REQ_RESTORE=9001, REQ_BACKUP=9002;', 'private static final int REQ_RESTORE=9001, REQ_BACKUP=9002, REQ_DRIVE_FOLDER=9003;\n    private static final String DRIVE_KEY="drive_tree_uri";')
-            s = s.replace('prefs=getSharedPreferences("financeiro_native",MODE_PRIVATE); load(); date=today(); build();', 'prefs=getSharedPreferences("financeiro_native",MODE_PRIVATE); load(); date=today(); build(); AutoDrive36.sync(this,dataJson());')
-            s = s.replace('TextView backup=action("Fazer backup",14);backup.setBackground(bg(Color.rgb(229,231,235),12,0));backup.setOnClickListener(v->backup());', 'TextView backup=action("Conectar Google Drive",14);backup.setBackground(bg(Color.rgb(229,231,235),12,0));backup.setOnClickListener(v->AutoDrive36.setup(this));')
-            s = s.replace('persist();clearForm();refresh();Toast.makeText(this,editing?"Alteração salva":"Lançamento salvo",Toast.LENGTH_SHORT).show();}', 'persist();AutoDrive36.sync(this,dataJson());clearForm();refresh();Toast.makeText(this,editing?"Alteração salva":"Lançamento salvo",Toast.LENGTH_SHORT).show();}')
-            s = s.replace('data.remove(x);persist();refresh();', 'data.remove(x);persist();AutoDrive36.sync(this,dataJson());refresh();')
-            s = s.replace('@Override protected void onActivityResult(int requestCode,int resultCode,Intent intent){', '@Override protected void onActivityResult(int requestCode,int resultCode,Intent intent){\n        if(requestCode==REQ_DRIVE_FOLDER){ AutoDrive36.finishSetup(this,resultCode,intent); return; }')
+            s = s.replace('prefs=getSharedPreferences("financeiro_native",MODE_PRIVATE); load(); date=today(); build();', 'prefs=getSharedPreferences("financeiro_native",MODE_PRIVATE); load(); date=today(); build(); AutoDrive37.sync(this,dataJson());')
+            s = s.replace('TextView backup=action("Fazer backup",14);backup.setBackground(bg(Color.rgb(229,231,235),12,0));backup.setOnClickListener(v->backup());tools.addView(backup);margin(backup,6,0);', 'if(!AutoDrive37.connected(this)){ TextView backup=action("Conectar conta Google",15);backup.setTextColor(Color.WHITE);backup.setBackground(bg(NAVY,14,0));backup.setOnClickListener(v->AutoDrive37.setup(this));tools.addView(backup);margin(backup,6,0); }')
+            s = s.replace('persist();clearForm();refresh();Toast.makeText(this,editing?"Alteração salva":"Lançamento salvo",Toast.LENGTH_SHORT).show();}', 'persist();AutoDrive37.sync(this,dataJson());clearForm();refresh();Toast.makeText(this,editing?"Alteração salva":"Lançamento salvo",Toast.LENGTH_SHORT).show();}')
+            s = s.replace('data.remove(x);persist();refresh();', 'data.remove(x);persist();AutoDrive37.sync(this,dataJson());refresh();')
+            s = s.replace('@Override protected void onActivityResult(int requestCode,int resultCode,Intent intent){', '@Override protected void onActivityResult(int requestCode,int resultCode,Intent intent){\n        if(requestCode==REQ_DRIVE_FOLDER){ AutoDrive37.finishSetup(this,resultCode,intent); return; }')
             int last = s.lastIndexOf('}')
             def helper = '''
-    static class AutoDrive36 {
+    static class AutoDrive37 {
+        static boolean connected(Activity a){
+            String raw=a.getSharedPreferences("financeiro_native",MODE_PRIVATE).getString(DRIVE_KEY,"");
+            if(raw.length()==0)return false;
+            try{
+                Uri tree=Uri.parse(raw);
+                for(android.content.UriPermission p:a.getContentResolver().getPersistedUriPermissions()){
+                    if(p.getUri().equals(tree)&&p.isReadPermission()&&p.isWritePermission()){
+                        DocumentsContract.getTreeDocumentId(tree); return true;
+                    }
+                }
+            }catch(Exception ignored){}
+            return false;
+        }
         static void setup(Activity a){
-            Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION|Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-            a.startActivityForResult(i,REQ_DRIVE_FOLDER);
+            try{
+                Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+                i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION|Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+                a.startActivityForResult(Intent.createChooser(i,"Conectar Google Drive"),REQ_DRIVE_FOLDER);
+            }catch(Exception e){Toast.makeText(a,"Não foi possível abrir o Google Drive.",Toast.LENGTH_LONG).show();}
         }
         static void finishSetup(Activity a,int resultCode,Intent intent){
-            if(resultCode!=RESULT_OK||intent==null||intent.getData()==null)return;
+            if(resultCode!=RESULT_OK||intent==null||intent.getData()==null){Toast.makeText(a,"Conexão cancelada.",Toast.LENGTH_SHORT).show();return;}
             Uri tree=intent.getData();
-            try{a.getContentResolver().takePersistableUriPermission(tree,Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);}catch(Exception ignored){}
+            String authority=tree.getAuthority()==null?"":tree.getAuthority();
+            if(!authority.contains("google")&&!authority.contains("docs")){
+                Toast.makeText(a,"Selecione uma pasta do Google Drive.",Toast.LENGTH_LONG).show();return;
+            }
+            try{a.getContentResolver().takePersistableUriPermission(tree,Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);}
+            catch(Exception e){Toast.makeText(a,"Não foi possível autorizar o Google Drive.",Toast.LENGTH_LONG).show();return;}
             a.getSharedPreferences("financeiro_native",MODE_PRIVATE).edit().putString(DRIVE_KEY,tree.toString()).apply();
-            sync(a,a instanceof MainActivity?((MainActivity)a).dataJson():new JSONArray());
+            sync(a,a.dataJson());
             Toast.makeText(a,"Google Drive conectado. Backup automático ativado.",Toast.LENGTH_LONG).show();
+            a.build();
         }
         static void sync(Activity a,JSONArray data){
             String raw=a.getSharedPreferences("financeiro_native",MODE_PRIVATE).getString(DRIVE_KEY,"");
@@ -66,16 +85,15 @@ tasks.withType(JavaCompile).configureEach {
                 Uri tree=Uri.parse(raw);
                 String treeId=DocumentsContract.getTreeDocumentId(tree);
                 Uri children=DocumentsContract.buildChildDocumentsUriUsingTree(tree,treeId);
-                String target="comida-de-vo-financeiro-auto.json";
-                Uri fileUri=null;
-                android.database.Cursor c=a.getContentResolver().query(children,new String[]{android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID,android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME},null,null,null);
+                String target="comida-de-vo-financeiro-auto.json"; Uri fileUri=null;
+                android.database.Cursor c=a.getContentResolver().query(children,new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID,DocumentsContract.Document.COLUMN_DISPLAY_NAME},null,null,null);
                 if(c!=null){while(c.moveToNext()){if(target.equals(c.getString(1))){fileUri=DocumentsContract.buildDocumentUriUsingTree(tree,c.getString(0));break;}}c.close();}
                 if(fileUri==null)fileUri=DocumentsContract.createDocument(a.getContentResolver(),tree,"application/json",target);
                 if(fileUri!=null){OutputStream out=a.getContentResolver().openOutputStream(fileUri,"wt");if(out!=null){out.write(data.toString(2).getBytes("UTF-8"));out.close();}}
             }catch(Exception ignored){}
         }
     }
-    // AUTO_DRIVE_36
+    // AUTO_DRIVE_37
 '''
             s = s.substring(0,last) + helper + s.substring(last)
             f.setText(s,'UTF-8')
