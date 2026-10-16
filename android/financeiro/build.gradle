@@ -53,4 +53,5 @@ tasks.register('syncFinanceiroWeb', Copy) {
     }
 }
 
+// força o workflow do GitHub a gerar o APK v1.8 com a interface limpa
 tasks.named('preBuild').configure { dependsOn('syncFinanceiroWeb') }
