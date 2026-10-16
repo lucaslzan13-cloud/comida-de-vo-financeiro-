@@ -41,12 +41,11 @@ tasks.withType(JavaCompile).configureEach {
         def f = file('src/main/java/br/com/comidadevo/financeiro/MainActivity.java')
         def s = f.getText('UTF-8')
         if (!s.contains('class GoogleSync40')) {
-            s = s.replace('import android.content.*;', 'import android.content.*;\nimport android.os.CancellationSignal;\nimport androidx.annotation.NonNull;\nimport androidx.credentials.Credential;\nimport androidx.credentials.CredentialManager;\nimport androidx.credentials.CredentialManagerCallback;\nimport androidx.credentials.CustomCredential;\nimport androidx.credentials.GetCredentialRequest;\nimport androidx.credentials.GetCredentialResponse;\nimport androidx.credentials.exceptions.GetCredentialException;\nimport com.google.android.libraries.identity.googleid.GetGoogleIdOption;\nimport com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;\nimport com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException;\nimport com.google.firebase.FirebaseApp;\nimport com.google.firebase.FirebaseOptions;\nimport com.google.firebase.auth.AuthCredential;\nimport com.google.firebase.auth.FirebaseAuth;\nimport com.google.firebase.auth.FirebaseUser;\nimport com.google.firebase.auth.GoogleAuthProvider;\nimport com.google.firebase.firestore.FirebaseFirestore;\nimport java.util.HashMap;\nimport java.util.Map;\nimport java.util.concurrent.Executors;')
-            s = s.replace('private static final int REQ_RESTORE=9001, REQ_BACKUP=9002;', 'private static final int REQ_RESTORE=9001, REQ_BACKUP=9002;')
+            s = s.replace('import android.content.*;', 'import android.content.*;\nimport android.os.CancellationSignal;\nimport androidx.annotation.NonNull;\nimport androidx.credentials.Credential;\nimport androidx.credentials.CredentialManager;\nimport androidx.credentials.CredentialManagerCallback;\nimport androidx.credentials.CustomCredential;\nimport androidx.credentials.GetCredentialRequest;\nimport androidx.credentials.GetCredentialResponse;\nimport androidx.credentials.exceptions.GetCredentialException;\nimport com.google.android.libraries.identity.googleid.GetGoogleIdOption;\nimport com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;\nimport com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException;\nimport com.google.firebase.FirebaseApp;\nimport com.google.firebase.FirebaseOptions;\nimport com.google.firebase.auth.AuthCredential;\nimport com.google.firebase.auth.FirebaseAuth;\nimport com.google.firebase.auth.FirebaseUser;\nimport com.google.firebase.auth.GoogleAuthProvider;\nimport com.google.firebase.firestore.FirebaseFirestore;\nimport com.google.firebase.firestore.SetOptions;\nimport java.util.HashMap;\nimport java.util.Map;\nimport java.util.concurrent.Executors;')
             s = s.replace('prefs=getSharedPreferences("financeiro_native",MODE_PRIVATE); load(); date=today(); build();', 'prefs=getSharedPreferences("financeiro_native",MODE_PRIVATE); load(); date=today(); GoogleSync40.init(this); build(); GoogleSync40.pull(this);')
-            s = s.replace('if(!AutoDrive371.connected(this)){ TextView backup=action("Conectar conta Google",15);backup.setTextColor(Color.WHITE);backup.setBackground(bg(NAVY,14,0));backup.setOnClickListener(v->AutoDrive371.setup(this));tools.addView(backup);margin(backup,6,0); }', 'if(!GoogleSync40.connected()){ TextView backup=action("Conectar conta Google",15);backup.setTextColor(Color.WHITE);backup.setBackground(bg(NAVY,14,0));backup.setOnClickListener(v->GoogleSync40.signIn(this));tools.addView(backup);margin(backup,6,0); }')
-            s = s.replace('persist();AutoDrive371.sync(this,dataJson());clearForm();refresh();', 'persist();GoogleSync40.push(this,dataJson());clearForm();refresh();')
-            s = s.replace('data.remove(x);persist();AutoDrive371.sync(this,dataJson());refresh();', 'data.remove(x);persist();GoogleSync40.push(this,dataJson());refresh();')
+            s = s.replace('TextView backup=action("Fazer backup",14);backup.setBackground(bg(Color.rgb(229,231,235),12,0));backup.setOnClickListener(v->backup());tools.addView(backup);margin(backup,6,0);', 'if(!GoogleSync40.connected()){ TextView backup=action("Conectar conta Google",15);backup.setTextColor(Color.WHITE);backup.setBackground(bg(NAVY,14,0));backup.setOnClickListener(v->GoogleSync40.signIn(this));tools.addView(backup);margin(backup,6,0); }')
+            s = s.replace('persist();clearForm();refresh();Toast.makeText(this,editing?"Alteração salva":"Lançamento salvo",Toast.LENGTH_SHORT).show();}', 'persist();GoogleSync40.push(this,dataJson());clearForm();refresh();Toast.makeText(this,editing?"Alteração salva":"Lançamento salvo",Toast.LENGTH_SHORT).show();}')
+            s = s.replace('data.remove(x);persist();refresh();', 'data.remove(x);persist();GoogleSync40.push(this,dataJson());refresh();')
             int last = s.lastIndexOf('}')
             def helper = '''
     static class GoogleSync40 {
@@ -66,10 +65,9 @@ tasks.withType(JavaCompile).configureEach {
                 if(!started){
                     started=true;
                     auth.addAuthStateListener(x->{
-                        if(x.getCurrentUser()!=null) pull(a);
+                        if(x.getCurrentUser()!=null){pull(a);watch(a);}
                         a.runOnUiThread(()->((MainActivity)a).build());
                     });
-                    db.collection("users").document("__unused__");
                 }
             }catch(Exception e){Toast.makeText(a,"Não foi possível preparar a conexão Google.",Toast.LENGTH_LONG).show();}
         }
@@ -87,7 +85,7 @@ tasks.withType(JavaCompile).configureEach {
                             try{
                                 GoogleIdTokenCredential g=GoogleIdTokenCredential.createFrom(((CustomCredential)c).getData());
                                 AuthCredential fc=GoogleAuthProvider.getCredential(g.getIdToken(),null);
-                                auth.signInWithCredential(fc).addOnSuccessListener(v->{Toast.makeText(a,"Google conectado. Sincronização automática ativada.",Toast.LENGTH_LONG).show();pull(a);a.runOnUiThread(()->((MainActivity)a).build());}).addOnFailureListener(e->Toast.makeText(a,"Não foi possível conectar ao Google.",Toast.LENGTH_LONG).show());
+                                auth.signInWithCredential(fc).addOnSuccessListener(v->{Toast.makeText(a,"Google conectado. Sincronização automática ativada.",Toast.LENGTH_LONG).show();pull(a);watch(a);a.runOnUiThread(()->((MainActivity)a).build());}).addOnFailureListener(e->Toast.makeText(a,"Não foi possível conectar ao Google.",Toast.LENGTH_LONG).show());
                             }catch(GoogleIdTokenParsingException e){Toast.makeText(a,"Não foi possível ler a conta Google.",Toast.LENGTH_LONG).show();}
                         }else Toast.makeText(a,"Nenhuma conta Google foi selecionada.",Toast.LENGTH_SHORT).show();
                     }
@@ -97,17 +95,25 @@ tasks.withType(JavaCompile).configureEach {
         }
         static void push(Activity a,JSONArray data){
             if(!connected()||db==null)return;
-            FirebaseUser u=auth.getCurrentUser(); if(u==null)return;
+            FirebaseUser u=auth.getCurrentUser();if(u==null)return;
             HashMap<String,Object> payload=new HashMap<>();payload.put("state",data.toString());payload.put("email",u.getEmail());payload.put("updatedAt",System.currentTimeMillis());
-            db.collection("users").document(u.getUid()).set(payload,com.google.firebase.firestore.SetOptions.merge());
+            db.collection("users").document(u.getUid()).set(payload,SetOptions.merge());
         }
         static void pull(Activity a){
             if(!connected()||db==null)return;
             FirebaseUser u=auth.getCurrentUser();if(u==null)return;
             db.collection("users").document(u.getUid()).get().addOnSuccessListener(snap->{
-                if(!snap.exists())return;
+                if(!snap.exists()){MainActivity m=(MainActivity)a;if(!m.data.isEmpty())push(a,m.dataJson());return;}
                 Object raw=snap.get("state");if(!(raw instanceof String))return;
                 try{JSONArray remote=new JSONArray((String)raw);MainActivity m=(MainActivity)a;m.data.clear();for(int i=0;i<remote.length();i++){JSONObject o=remote.getJSONObject(i);Tx x=new Tx();x.id=o.optString("id",UUID.randomUUID().toString());x.type=o.optString("type","out");x.amount=o.optDouble("amount",0);x.category=o.optString("category","");x.date=o.optString("date","");x.desc=o.optString("desc","");m.data.add(x);}m.persist();a.runOnUiThread(m::refresh);}catch(Exception ignored){}
+            });
+        }
+        static void watch(Activity a){
+            if(!connected()||db==null)return;
+            FirebaseUser u=auth.getCurrentUser();if(u==null)return;
+            db.collection("users").document(u.getUid()).addSnapshotListener((snap,e)->{
+                if(e!=null||snap==null||!snap.exists())return;Object raw=snap.get("state");if(!(raw instanceof String))return;
+                try{JSONArray remote=new JSONArray((String)raw);MainActivity m=(MainActivity)a;String local=m.dataJson().toString();if(local.equals((String)raw))return;m.data.clear();for(int i=0;i<remote.length();i++){JSONObject o=remote.getJSONObject(i);Tx x=new Tx();x.id=o.optString("id",UUID.randomUUID().toString());x.type=o.optString("type","out");x.amount=o.optDouble("amount",0);x.category=o.optString("category","");x.date=o.optString("date","");x.desc=o.optString("desc","");m.data.add(x);}m.persist();a.runOnUiThread(m::refresh);}catch(Exception ignored){}
             });
         }
     }
