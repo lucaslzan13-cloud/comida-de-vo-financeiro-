@@ -9,6 +9,7 @@
 <title>Comida de Vó — Financeiro</title>
 <style>
 *{box-sizing:border-box}html{background:#f3f4f6}body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f3f4f6;color:#111827;-webkit-tap-highlight-color:transparent}button,input,select{font:inherit}button{touch-action:manipulation}
+[hidden]{display:none!important}
 header{background:#111827;color:#fff;padding:18px 16px 20px;position:sticky;top:0;z-index:10}h1{margin:0;font-size:23px;line-height:1.15}.sub{opacity:.7;font-size:13px;margin-top:4px}
 main{max-width:720px;margin:auto;padding:12px 12px 90px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}.card{background:#fff;border-radius:16px;padding:13px;box-shadow:0 2px 10px #0000000d}.card.balance{grid-column:1/-1}.label{font-size:12px;color:#6b7280}.value{font-size:22px;font-weight:850;margin-top:4px}.in{color:#15803d}.out{color:#b91c1c}.bal{color:#1d4ed8}
 .quick{background:#fff;border-radius:18px;padding:15px;margin-bottom:12px;box-shadow:0 2px 10px #0000000d}.quick-title{font-size:17px;font-weight:800;margin-bottom:10px}.type-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}.type-btn{padding:11px;border-radius:12px;border:1px solid #d1d5db;background:#f9fafb;color:#374151;font-weight:800}.type-btn.active.out-type{background:#111827;color:#fff;border-color:#111827}.type-btn.active.in-type{background:#15803d;color:#fff;border-color:#15803d}
@@ -31,7 +32,6 @@ section{background:#fff;border-radius:16px;padding:14px;margin-bottom:12px;box-s
 <div class="card"><div class="label">Gastos</div><div id="totalOut" class="value out">R$ 0,00</div></div>
 <div class="card balance"><div class="label">Saldo do mês</div><div id="balance" class="value bal">R$ 0,00</div></div>
 </div>
-
 <div class="quick">
 <div class="quick-title">Lançamento rápido</div>
 <div class="type-row"><button id="outBtn" class="type-btn active out-type" onclick="setType('out')">Gasto</button><button id="inBtn" class="type-btn in-type" onclick="setType('in')">Entrada</button></div>
@@ -46,7 +46,6 @@ section{background:#fff;border-radius:16px;padding:14px;margin-bottom:12px;box-s
 <div id="lastBox" class="last" hidden><div id="lastText" class="last-text"></div><button class="repeat" onclick="repeatLast()">Repetir</button></div>
 <button id="install" class="install" onclick="installApp()">Instalar aplicativo</button>
 </div>
-
 <section><h2>Filtros</h2><div class="filter-grid"><div><label>Mês</label><input id="month" type="month" onchange="render()"></div><div><label>Tipo</label><select id="filterType" onchange="render()"><option value="all">Todos</option><option value="in">Entradas</option><option value="out">Gastos</option></select></div></div></section>
 <section><h2>Histórico</h2><div id="list"></div><div class="bottom-actions"><button class="secondary danger" onclick="clearAll()">Apagar todos</button><button class="secondary" onclick="exportData()">Exportar dados</button></div></section>
 </main><div id="toast" class="toast"></div>
