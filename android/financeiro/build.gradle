@@ -8,8 +8,8 @@ android {
         applicationId 'br.com.comidadevo.financeiro'
         minSdk 24
         targetSdk 36
-        versionCode 9
-        versionName '1.8'
+        versionCode 10
+        versionName '1.9'
     }
 
     buildTypes {
@@ -53,5 +53,4 @@ tasks.register('syncFinanceiroWeb', Copy) {
     }
 }
 
-// força o workflow do GitHub a gerar o APK v1.8 com a interface limpa
 tasks.named('preBuild').configure { dependsOn('syncFinanceiroWeb') }
