@@ -8,8 +8,8 @@ android {
         applicationId 'br.com.comidadevo.financeiro'
         minSdk 24
         targetSdk 36
-        versionCode 23
-        versionName '3.7'
+        versionCode 24
+        versionName '3.7.1'
     }
 
     signingConfigs {
@@ -33,17 +33,17 @@ tasks.withType(JavaCompile).configureEach {
     doFirst {
         def f = file('src/main/java/br/com/comidadevo/financeiro/MainActivity.java')
         def s = f.getText('UTF-8')
-        if (!s.contains('class AutoDrive37')) {
+        if (!s.contains('class AutoDrive371')) {
             s = s.replace('import android.content.*;', 'import android.content.*;\nimport android.net.Uri;\nimport android.provider.DocumentsContract;')
             s = s.replace('private static final int REQ_RESTORE=9001, REQ_BACKUP=9002;', 'private static final int REQ_RESTORE=9001, REQ_BACKUP=9002, REQ_DRIVE_FOLDER=9003;\n    private static final String DRIVE_KEY="drive_tree_uri";')
-            s = s.replace('prefs=getSharedPreferences("financeiro_native",MODE_PRIVATE); load(); date=today(); build();', 'prefs=getSharedPreferences("financeiro_native",MODE_PRIVATE); load(); date=today(); build(); AutoDrive37.sync(this,dataJson());')
-            s = s.replace('TextView backup=action("Fazer backup",14);backup.setBackground(bg(Color.rgb(229,231,235),12,0));backup.setOnClickListener(v->backup());tools.addView(backup);margin(backup,6,0);', 'if(!AutoDrive37.connected(this)){ TextView backup=action("Conectar conta Google",15);backup.setTextColor(Color.WHITE);backup.setBackground(bg(NAVY,14,0));backup.setOnClickListener(v->AutoDrive37.setup(this));tools.addView(backup);margin(backup,6,0); }')
-            s = s.replace('persist();clearForm();refresh();Toast.makeText(this,editing?"Alteração salva":"Lançamento salvo",Toast.LENGTH_SHORT).show();}', 'persist();AutoDrive37.sync(this,dataJson());clearForm();refresh();Toast.makeText(this,editing?"Alteração salva":"Lançamento salvo",Toast.LENGTH_SHORT).show();}')
-            s = s.replace('data.remove(x);persist();refresh();', 'data.remove(x);persist();AutoDrive37.sync(this,dataJson());refresh();')
-            s = s.replace('@Override protected void onActivityResult(int requestCode,int resultCode,Intent intent){', '@Override protected void onActivityResult(int requestCode,int resultCode,Intent intent){\n        if(requestCode==REQ_DRIVE_FOLDER){ AutoDrive37.finishSetup(this,resultCode,intent); return; }')
+            s = s.replace('prefs=getSharedPreferences("financeiro_native",MODE_PRIVATE); load(); date=today(); build();', 'prefs=getSharedPreferences("financeiro_native",MODE_PRIVATE); load(); date=today(); build(); AutoDrive371.sync(this,dataJson());')
+            s = s.replace('TextView backup=action("Fazer backup",14);backup.setBackground(bg(Color.rgb(229,231,235),12,0));backup.setOnClickListener(v->backup());tools.addView(backup);margin(backup,6,0);', 'if(!AutoDrive371.connected(this)){ TextView backup=action("Conectar conta Google",15);backup.setTextColor(Color.WHITE);backup.setBackground(bg(NAVY,14,0));backup.setOnClickListener(v->AutoDrive371.setup(this));tools.addView(backup);margin(backup,6,0); }')
+            s = s.replace('persist();clearForm();refresh();Toast.makeText(this,editing?"Alteração salva":"Lançamento salvo",Toast.LENGTH_SHORT).show();}', 'persist();AutoDrive371.sync(this,dataJson());clearForm();refresh();Toast.makeText(this,editing?"Alteração salva":"Lançamento salvo",Toast.LENGTH_SHORT).show();}')
+            s = s.replace('data.remove(x);persist();refresh();', 'data.remove(x);persist();AutoDrive371.sync(this,dataJson());refresh();')
+            s = s.replace('@Override protected void onActivityResult(int requestCode,int resultCode,Intent intent){', '@Override protected void onActivityResult(int requestCode,int resultCode,Intent intent){\n        if(requestCode==REQ_DRIVE_FOLDER){ AutoDrive371.finishSetup(this,resultCode,intent); return; }')
             int last = s.lastIndexOf('}')
             def helper = '''
-    static class AutoDrive37 {
+    static class AutoDrive371 {
         static boolean connected(Activity a){
             String raw=a.getSharedPreferences("financeiro_native",MODE_PRIVATE).getString(DRIVE_KEY,"");
             if(raw.length()==0)return false;
@@ -74,9 +74,10 @@ tasks.withType(JavaCompile).configureEach {
             try{a.getContentResolver().takePersistableUriPermission(tree,Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);}
             catch(Exception e){Toast.makeText(a,"Não foi possível autorizar o Google Drive.",Toast.LENGTH_LONG).show();return;}
             a.getSharedPreferences("financeiro_native",MODE_PRIVATE).edit().putString(DRIVE_KEY,tree.toString()).apply();
-            sync(a,a.dataJson());
+            MainActivity m=(MainActivity)a;
+            sync(a,m.dataJson());
             Toast.makeText(a,"Google Drive conectado. Backup automático ativado.",Toast.LENGTH_LONG).show();
-            a.build();
+            m.build();
         }
         static void sync(Activity a,JSONArray data){
             String raw=a.getSharedPreferences("financeiro_native",MODE_PRIVATE).getString(DRIVE_KEY,"");
@@ -93,7 +94,7 @@ tasks.withType(JavaCompile).configureEach {
             }catch(Exception ignored){}
         }
     }
-    // AUTO_DRIVE_37
+    // AUTO_DRIVE_371
 '''
             s = s.substring(0,last) + helper + s.substring(last)
             f.setText(s,'UTF-8')
