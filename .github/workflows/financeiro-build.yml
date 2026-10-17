@@ -1,0 +1,42 @@
+name: Financeiro APK v5
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'android/financeiro/**'
+      - '.github/workflows/financeiro-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.6.0'
+      - name: Criar assinatura estável
+        run: |
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/comida-de-vo-debug.keystore" ]; then
+            keytool -genkeypair -v -keystore "$HOME/.android/comida-de-vo-debug.keystore" -storepass comidadevo -keypass comidadevo -alias comidadevo -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Comida de Vó, OU=Aplicativos, O=Comida de Vó, L=Uba, ST=MG, C=BR"
+          fi
+      - name: Compilar Financeiro
+        run: gradle :financeiro:assembleDebug --no-daemon --stacktrace
+      - name: Verificar APK
+        run: |
+          ls -lh financeiro/build/outputs/apk/debug/financeiro-debug.apk
+          unzip -l financeiro/build/outputs/apk/debug/financeiro-debug.apk | grep '\.so$' || true
+          jarsigner -verify financeiro/build/outputs/apk/debug/financeiro-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ComidaDeVo-Financeiro-v5
+          path: android/financeiro/build/outputs/apk/debug/financeiro-debug.apk
+          if-no-files-found: error
