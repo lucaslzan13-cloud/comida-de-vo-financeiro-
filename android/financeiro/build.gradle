@@ -7,8 +7,8 @@ android {
         applicationId 'br.com.comidadevo.financeiro'
         minSdk 24
         targetSdk 36
-        versionCode 28
-        versionName '4.2.0'
+        versionCode 29
+        versionName '5.0.0'
     }
     signingConfigs {
         debug {
@@ -22,13 +22,20 @@ android {
         debug { signingConfig signingConfigs.debug }
         release { minifyEnabled false; shrinkResources false }
     }
+    // Compatibilidade com aparelhos modernos que usam páginas de memória de 16 KB.
+    // Comprimir as bibliotecas nativas evita que o instalador rejeite o APK por alinhamento ELF/APK.
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
 }
 
 dependencies {
     implementation 'androidx.credentials:credentials:1.3.0'
     implementation 'androidx.credentials:credentials-play-services-auth:1.3.0'
     implementation 'com.google.android.libraries.identity.googleid:googleid:1.1.1'
-    implementation 'com.google.android.gms:play-services-auth:21.4.0'
+    implementation 'com.google.android.gms:play-services-auth:21.6.0'
     implementation platform('com.google.firebase:firebase-bom:35.0.1')
     implementation 'com.google.firebase:firebase-auth'
     implementation 'com.google.firebase:firebase-firestore'
