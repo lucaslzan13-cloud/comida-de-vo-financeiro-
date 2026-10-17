@@ -13,7 +13,6 @@ on:
       - '.github/workflows/android-apk.yml'
   workflow_dispatch:
 
-# build trigger: force Android APK rebuild after native safe-area fix
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -51,6 +50,29 @@ jobs:
           fi
           echo "SHA1 DO APK:"
           keytool -list -v -keystore "$HOME/.android/comida-de-vo-debug.keystore" -storepass comidadevo -alias comidadevo | grep -E 'SHA1:|SHA-1:' | head -1
+      - name: Ajustar Financeiro Google antes da compilação
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('financeiro/build.gradle')
+          s=p.read_text()
+          s=s.replace("versionCode 26", "versionCode 27")
+          s=s.replace("versionName '4.0.1'", "versionName '4.1.0'")
+          s=s.replace("dependencies {\n", "dependencies {\n    implementation 'androidx.core:core:1.17.0'\n", 1)
+          s=s.replace("import androidx.credentials.Credential;", "import androidx.core.content.ContextCompat;\nimport androidx.credentials.Credential;")
+          s=s.replace("new CancellationSignal(),Executors.newSingleThreadExecutor(),new CredentialManagerCallback", "new CancellationSignal(),ContextCompat.getMainExecutor(a),new CredentialManagerCallback")
+          old="root.addView(totals);margin(totals,0,9);\\n        buildLaunch();"
+          new="root.addView(totals);margin(totals,0,9);\\n        if(!GoogleSync40.connected()){ TextView google=action(\"Conectar conta Google\",15); google.setTextColor(Color.WHITE); google.setBackground(bg(NAVY,14,0)); google.setOnClickListener(v->GoogleSync40.signIn(this)); root.addView(google); margin(google,0,9); }\\n        buildLaunch();"
+          s=s.replace(old,new)
+          old2="TextView backup=action(\"Fazer backup\",14);backup.setBackground(bg(Color.rgb(229,231,235),12,0));backup.setOnClickListener(v->backup());tools.addView(backup);margin(backup,6,0);"
+          new2=old2
+          s=s.replace("s = s.replace('"+old2+"', 'if(!GoogleSync40.connected()){ TextView backup=action(\"Conectar conta Google\",15);backup.setTextColor(Color.WHITE);backup.setBackground(bg(NAVY,14,0));backup.setOnClickListener(v->GoogleSync40.signIn(this));tools.addView(backup);margin(backup,6,0); }')", "s = s.replace('"+old2+"', '"+old2+"')")
+          # Remove the old bottom Google-button replacement if present.
+          marker="s = s.replace('TextView backup=action(\"Fazer backup\",14);backup.setBackground(bg(Color.rgb(229,231,235),12,0));backup.setOnClickListener(v->backup());tools.addView(backup);margin(backup,6,0);', 'if(!GoogleSync40.connected()){ TextView backup=action(\"Conectar conta Google\",15);backup.setTextColor(Color.WHITE);backup.setBackground(bg(NAVY,14,0));backup.setOnClickListener(v->GoogleSync40.signIn(this));tools.addView(backup);margin(backup,6,0); }')"
+          replacement="s = s.replace('TextView backup=action(\"Fazer backup\",14);backup.setBackground(bg(Color.rgb(229,231,235),12,0));backup.setOnClickListener(v->backup());tools.addView(backup);margin(backup,6,0);', 'TextView backup=action(\"Fazer backup\",14);backup.setBackground(bg(Color.rgb(229,231,235),12,0));backup.setOnClickListener(v->backup());tools.addView(backup);margin(backup,6,0);')"
+          s=s.replace(marker,replacement)
+          p.write_text(s)
+          PY
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
