@@ -1,0 +1,65 @@
+name: Android APK 4.0.2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'android/patch_financeiro_v402.py'
+      - 'android/financeiro/**'
+      - '.github/workflows/android-apk-v402.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Recuperar chave de assinatura estável
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/comida-de-vo-debug.keystore
+          key: comida-de-vo-android-signing-v1
+      - name: Criar chave de assinatura Android se necessário
+        run: |
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/comida-de-vo-debug.keystore" ]; then
+            keytool -genkeypair -v \
+              -keystore "$HOME/.android/comida-de-vo-debug.keystore" \
+              -storepass comidadevo \
+              -keypass comidadevo \
+              -alias comidadevo \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Comida de Vó, OU=Aplicativos, O=Comida de Vó, L=Uba, ST=MG, C=BR"
+          fi
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.6.0'
+      - name: Aplicar correções do Financeiro
+        run: python3 patch_financeiro_v402.py
+      - name: Gerar APKs instaláveis
+        run: gradle :app:assembleDebug :financeiro:assembleDebug --no-daemon
+      - name: Conferir APKs
+        run: |
+          test -f app/build/outputs/apk/debug/app-debug.apk
+          test -f financeiro/build/outputs/apk/debug/financeiro-debug.apk
+          jarsigner -verify -verbose -certs financeiro/build/outputs/apk/debug/financeiro-debug.apk | tail -5
+      - name: Publicar APKs como artefatos
+        uses: actions/upload-artifact@v4
+        with:
+          name: comida-de-vo-v4.0.2
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/financeiro/build/outputs/apk/debug/financeiro-debug.apk
+          if-no-files-found: error
