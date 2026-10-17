@@ -1,0 +1,54 @@
+name: Android Financeiro Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'android/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Recuperar chave de assinatura estável
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/comida-de-vo-debug.keystore
+          key: comida-de-vo-android-signing-v1
+      - name: Criar chave de assinatura Android se necessário
+        run: |
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/comida-de-vo-debug.keystore" ]; then
+            keytool -genkeypair -v -keystore "$HOME/.android/comida-de-vo-debug.keystore" -storepass comidadevo -keypass comidadevo -alias comidadevo -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Comida de Vó, OU=Aplicativos, O=Comida de Vó, L=Uba, ST=MG, C=BR"
+          fi
+      - name: Aplicar correção Google do Financeiro
+        run: python3 patch_financeiro_google.py
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.6.0'
+      - name: Gerar APK Financeiro
+        run: gradle :financeiro:assembleDebug --no-daemon
+      - name: Conferir APK
+        run: |
+          test -f financeiro/build/outputs/apk/debug/financeiro-debug.apk
+          ls -lh financeiro/build/outputs/apk/debug/financeiro-debug.apk
+      - name: Publicar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: comida-de-vo-financeiro-4.3.0
+          path: android/financeiro/build/outputs/apk/debug/financeiro-debug.apk
+          if-no-files-found: error
