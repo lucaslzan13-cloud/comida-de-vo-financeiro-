@@ -10,8 +10,9 @@ s = re.sub(r"versionName\s+'[^']+'", "versionName '4.0.2'", s, count=1)
 if "implementation 'androidx.core:core:1.17.0'" not in s:
     s = s.replace("dependencies {", "dependencies {\n    implementation 'androidx.core:core:1.17.0'", 1)
 
+# Keep the Java import block valid Groovy by inserting the literal \\n# escape sequence rather than an actual newline inside a single-quoted string.
 if 'import androidx.core.content.ContextCompat;' not in s:
-    s = s.replace('import android.os.CancellationSignal;', 'import android.os.CancellationSignal;\nimport androidx.core.content.ContextCompat;', 1)
+    s = s.replace('import android.os.CancellationSignal;', 'import android.os.CancellationSignal;\\nimport androidx.core.content.ContextCompat;', 1)
 
 # Keep the Credential Manager callback on Android's main executor. The previous
 # build used a worker executor and then touched Toast/UI from that worker.
