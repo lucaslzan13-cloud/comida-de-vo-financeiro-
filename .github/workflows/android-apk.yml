@@ -54,23 +54,20 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('financeiro/build.gradle')
+          p=Path('financeiro/src/main/java/br/com/comidadevo/financeiro/MainActivity.java')
           s=p.read_text()
-          s=s.replace("versionCode 26", "versionCode 27")
-          s=s.replace("versionName '4.0.1'", "versionName '4.1.0'")
-          s=s.replace("dependencies {\n", "dependencies {\n    implementation 'androidx.core:core:1.17.0'\n", 1)
-          s=s.replace("import androidx.credentials.Credential;", "import androidx.core.content.ContextCompat;\nimport androidx.credentials.Credential;")
-          s=s.replace("new CancellationSignal(),Executors.newSingleThreadExecutor(),new CredentialManagerCallback", "new CancellationSignal(),ContextCompat.getMainExecutor(a),new CredentialManagerCallback")
-          old="root.addView(totals);margin(totals,0,9);\\n        buildLaunch();"
-          new="root.addView(totals);margin(totals,0,9);\\n        if(!GoogleSync40.connected()){ TextView google=action(\"Conectar conta Google\",15); google.setTextColor(Color.WHITE); google.setBackground(bg(NAVY,14,0)); google.setOnClickListener(v->GoogleSync40.signIn(this)); root.addView(google); margin(google,0,9); }\\n        buildLaunch();"
+          s=s.replace('import androidx.credentials.Credential;', 'import com.google.android.gms.auth.api.signin.GoogleSignIn;\nimport com.google.android.gms.auth.api.signin.GoogleSignInAccount;\nimport com.google.android.gms.auth.api.signin.GoogleSignInOptions;\nimport com.google.android.gms.common.api.ApiException;\nimport androidx.credentials.Credential;')
+          s=s.replace('private static final int REQ_RESTORE=9001, REQ_BACKUP=9002;', 'private static final int REQ_RESTORE=9001, REQ_BACKUP=9002, REQ_GOOGLE=9003;')
+          old='@Override protected void onActivityResult(int r,int c,Intent d){super.onActivityResult(r,c,d);if(c!=RESULT_OK||d==null)return;try{if(r==REQ_BACKUP)'
+          new='@Override protected void onActivityResult(int r,int c,Intent d){super.onActivityResult(r,c,d);if(r==REQ_GOOGLE){try{GoogleSignInAccount account=GoogleSignIn.getSignedInAccountFromIntent(d).getResult(ApiException.class);if(account==null||account.getIdToken()==null){showGoogleError("Não foi possível obter a conta Google.");return;}AuthCredential fc=GoogleAuthProvider.getCredential(account.getIdToken(),null);auth.signInWithCredential(fc).addOnSuccessListener(v->{runOnUiThread(()->{Toast.makeText(this,"Google conectado. Sincronização ativada.",Toast.LENGTH_LONG).show();recreate();});}).addOnFailureListener(e->showGoogleError("Google não autorizou a conexão. Verifique a conta."));}catch(Exception e){showGoogleError("Não foi possível concluir a conexão Google.");}return;}if(c!=RESULT_OK||d==null)return;try{if(r==REQ_BACKUP)'
           s=s.replace(old,new)
-          old2="TextView backup=action(\"Fazer backup\",14);backup.setBackground(bg(Color.rgb(229,231,235),12,0));backup.setOnClickListener(v->backup());tools.addView(backup);margin(backup,6,0);"
-          new2=old2
-          s=s.replace("s = s.replace('"+old2+"', 'if(!GoogleSync40.connected()){ TextView backup=action(\"Conectar conta Google\",15);backup.setTextColor(Color.WHITE);backup.setBackground(bg(NAVY,14,0));backup.setOnClickListener(v->GoogleSync40.signIn(this));tools.addView(backup);margin(backup,6,0); }')", "s = s.replace('"+old2+"', '"+old2+"')")
-          # Remove the old bottom Google-button replacement if present.
-          marker="s = s.replace('TextView backup=action(\"Fazer backup\",14);backup.setBackground(bg(Color.rgb(229,231,235),12,0));backup.setOnClickListener(v->backup());tools.addView(backup);margin(backup,6,0);', 'if(!GoogleSync40.connected()){ TextView backup=action(\"Conectar conta Google\",15);backup.setTextColor(Color.WHITE);backup.setBackground(bg(NAVY,14,0));backup.setOnClickListener(v->GoogleSync40.signIn(this));tools.addView(backup);margin(backup,6,0); }')"
-          replacement="s = s.replace('TextView backup=action(\"Fazer backup\",14);backup.setBackground(bg(Color.rgb(229,231,235),12,0));backup.setOnClickListener(v->backup());tools.addView(backup);margin(backup,6,0);', 'TextView backup=action(\"Fazer backup\",14);backup.setBackground(bg(Color.rgb(229,231,235),12,0));backup.setOnClickListener(v->backup());tools.addView(backup);margin(backup,6,0);')"
-          s=s.replace(marker,replacement)
+          marker='    static class Tx {String id="",type="out",category="Mercado",date="",desc="";double amount=0;}'
+          helper='    private void showGoogleError(String s){Toast.makeText(this,s,Toast.LENGTH_LONG).show();}\n\n'
+          s=s.replace(marker,helper+marker)
+          start=s.index('        static void signIn(Activity a){')
+          end=s.index('        private static void show',start)
+          method='''        static void signIn(Activity a){init(a);if(auth==null){show(a,"Não foi possível preparar o Google.");return;}try{GoogleSignInOptions gso=new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).requestIdToken(WEB_CLIENT_ID).requestEmail().build();Intent i=GoogleSignIn.getClient(a,gso).getSignInIntent();a.startActivityForResult(i,REQ_GOOGLE);}catch(Exception e){show(a,"Não foi possível abrir as contas Google.");}}\n'''
+          s=s[:start]+method+s[end:]
           p.write_text(s)
           PY
       - name: Configurar Gradle
