@@ -1,0 +1,49 @@
+name: Financeiro Google Fix
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'android/patch_financeiro_v402.py'
+      - 'android/financeiro/**'
+      - '.github/workflows/android-apk-google-fix.yml'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.android/comida-de-vo-debug.keystore
+          key: comida-de-vo-android-signing-v1
+      - name: Criar chave se necessário
+        run: |
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/comida-de-vo-debug.keystore" ]; then
+            keytool -genkeypair -v -keystore "$HOME/.android/comida-de-vo-debug.keystore" -storepass comidadevo -keypass comidadevo -alias comidadevo -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Comida de Vó, OU=Aplicativos, O=Comida de Vó, L=Uba, ST=MG, C=BR"
+          fi
+      - name: Mostrar fingerprints
+        run: keytool -list -v -keystore "$HOME/.android/comida-de-vo-debug.keystore" -storepass comidadevo -alias comidadevo | grep -E 'SHA1:|SHA256:'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.6.0'
+      - name: Aplicar correções
+        run: python3 patch_financeiro_v402.py
+      - name: Compilar
+        run: gradle :app:assembleDebug :financeiro:assembleDebug --no-daemon
+      - name: Conferir
+        run: |
+          test -f financeiro/build/outputs/apk/debug/financeiro-debug.apk
+          jarsigner -verify -verbose -certs financeiro/build/outputs/apk/debug/financeiro-debug.apk | tail -5
+      - name: Publicar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: comida-de-vo-v5-google-fix
+          path: android/financeiro/build/outputs/apk/debug/financeiro-debug.apk
