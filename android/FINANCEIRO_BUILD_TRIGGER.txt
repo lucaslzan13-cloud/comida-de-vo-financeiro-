@@ -1,1 +1,1 @@
-Financeiro build trigger: Google REST authentication fix.
+Financeiro build trigger: offline + 16KB APK install fix v5.0.0.
