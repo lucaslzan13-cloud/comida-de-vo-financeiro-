@@ -1,0 +1,1 @@
+Financeiro build trigger: Google REST authentication fix.
