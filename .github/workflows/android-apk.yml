@@ -38,15 +38,7 @@ jobs:
         run: |
           mkdir -p "$HOME/.android"
           if [ ! -f "$HOME/.android/comida-de-vo-debug.keystore" ]; then
-            keytool -genkeypair -v \
-              -keystore "$HOME/.android/comida-de-vo-debug.keystore" \
-              -storepass comidadevo \
-              -keypass comidadevo \
-              -alias comidadevo \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -dname "CN=Comida de Vó, OU=Aplicativos, O=Comida de Vó, L=Uba, ST=MG, C=BR"
+            keytool -genkeypair -v -keystore "$HOME/.android/comida-de-vo-debug.keystore" -storepass comidadevo -keypass comidadevo -alias comidadevo -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Comida de Vó, OU=Aplicativos, O=Comida de Vó, L=Uba, ST=MG, C=BR"
           fi
           echo "SHA1 DO APK:"
           keytool -list -v -keystore "$HOME/.android/comida-de-vo-debug.keystore" -storepass comidadevo -alias comidadevo | grep -E 'SHA1:|SHA-1:' | head -1
@@ -59,7 +51,7 @@ jobs:
           s=s.replace('import androidx.credentials.Credential;', 'import com.google.android.gms.auth.api.signin.GoogleSignIn;\nimport com.google.android.gms.auth.api.signin.GoogleSignInAccount;\nimport com.google.android.gms.auth.api.signin.GoogleSignInOptions;\nimport com.google.android.gms.common.api.ApiException;\nimport androidx.credentials.Credential;')
           s=s.replace('private static final int REQ_RESTORE=9001, REQ_BACKUP=9002;', 'private static final int REQ_RESTORE=9001, REQ_BACKUP=9002, REQ_GOOGLE=9003;')
           old='@Override protected void onActivityResult(int r,int c,Intent d){super.onActivityResult(r,c,d);if(c!=RESULT_OK||d==null)return;try{if(r==REQ_BACKUP)'
-          new='@Override protected void onActivityResult(int r,int c,Intent d){super.onActivityResult(r,c,d);if(r==REQ_GOOGLE){try{GoogleSignInAccount account=GoogleSignIn.getSignedInAccountFromIntent(d).getResult(ApiException.class);if(account==null||account.getIdToken()==null){showGoogleError("Não foi possível obter a conta Google.");return;}AuthCredential fc=GoogleAuthProvider.getCredential(account.getIdToken(),null);auth.signInWithCredential(fc).addOnSuccessListener(v->{runOnUiThread(()->{Toast.makeText(this,"Google conectado. Sincronização ativada.",Toast.LENGTH_LONG).show();recreate();});}).addOnFailureListener(e->showGoogleError("Google não autorizou a conexão. Verifique a conta."));}catch(Exception e){showGoogleError("Não foi possível concluir a conexão Google.");}return;}if(c!=RESULT_OK||d==null)return;try{if(r==REQ_BACKUP)'
+          new='@Override protected void onActivityResult(int r,int c,Intent d){super.onActivityResult(r,c,d);if(r==REQ_GOOGLE){try{GoogleSignInAccount account=GoogleSignIn.getSignedInAccountFromIntent(d).getResult(ApiException.class);if(account==null||account.getIdToken()==null){showGoogleError("Não foi possível obter a conta Google.");return;}AuthCredential fc=GoogleAuthProvider.getCredential(account.getIdToken(),null);FirebaseAuth.getInstance().signInWithCredential(fc).addOnSuccessListener(v->{runOnUiThread(()->{Toast.makeText(this,"Google conectado. Sincronização ativada.",Toast.LENGTH_LONG).show();recreate();});}).addOnFailureListener(e->showGoogleError("Google não autorizou a conexão. Verifique a conta."));}catch(Exception e){showGoogleError("Não foi possível concluir a conexão Google.");}return;}if(c!=RESULT_OK||d==null)return;try{if(r==REQ_BACKUP)'
           s=s.replace(old,new)
           marker='    static class Tx {String id="",type="out",category="Mercado",date="",desc="";double amount=0;}'
           helper='    private void showGoogleError(String s){Toast.makeText(this,s,Toast.LENGTH_LONG).show();}\n\n'
